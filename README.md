@@ -35,13 +35,13 @@ next steps:
 Linux / macOS:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/kamil/spicepm/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/KamilWachnicki/spicetify-pm/main/install.sh | bash
 ```
 
 Windows (PowerShell):
 
 ```powershell
-irm https://raw.githubusercontent.com/kamil/spicepm/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/KamilWachnicki/spicetify-pm/main/install.ps1 | iex
 ```
 
 Both scripts accept `--version vX.Y.Z` / `-Version vX.Y.Z` to pin a release,

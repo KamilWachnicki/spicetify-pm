@@ -1,0 +1,126 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            arch: x86_64
+            platform: linux
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            arch: aarch64
+            platform: linux
+            archive: tar.gz
+            cross: true
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            arch: x86_64
+            platform: macos
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            arch: aarch64
+            platform: macos
+            archive: tar.gz
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            arch: x86_64
+            platform: windows
+            archive: zip
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.98.0
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - uses: taiki-e/install-action@v2
+        if: matrix.cross
+        with:
+          tool: cross
+      - name: Build
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          CROSS: ${{ matrix.cross }}
+        run: |
+          set -euo pipefail
+          if [ "$CROSS" = "true" ]; then
+            cross build --release --target "$TARGET"
+          else
+            cargo build --release --target "$TARGET"
+          fi
+      - name: Package
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+          ARCH: ${{ matrix.arch }}
+          PLATFORM: ${{ matrix.platform }}
+          ARCHIVE: ${{ matrix.archive }}
+        run: |
+          set -euo pipefail
+          base="spicepm-$TAG-$ARCH-$PLATFORM"
+          mkdir "$base"
+          exe=""
+          [ "$PLATFORM" = "windows" ] && exe=".exe"
+          cp "target/${{ matrix.target }}/release/spicepm$exe" "$base/spicepm$exe"
+          cp README.md "$base/"
+          case "$ARCHIVE" in
+            tar.gz)
+              tar czf "$base.tar.gz" -C "$base" "spicepm$exe" README.md
+              ;;
+            zip)
+              powershell -NoProfile -Command "Compress-Archive -Path '$base/*' -DestinationPath '$base.zip' -Force"
+              ;;
+            *)
+              echo "unknown archive format: $ARCHIVE" >&2
+              exit 1
+              ;;
+          esac
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "$base.$ARCHIVE" > "$base.$ARCHIVE.sha256"
+          else
+            shasum -a 256 "$base.$ARCHIVE" > "$base.$ARCHIVE.sha256"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.target }}
+          path: spicepm-${{ github.ref_name }}-${{ matrix.arch }}-${{ matrix.platform }}.${{ matrix.archive }}*
+
+  release:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: dist
+      - name: Publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ls -la dist
+          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes dist/*

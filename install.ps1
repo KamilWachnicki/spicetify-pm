@@ -18,7 +18,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Repo = "kamil/spicepm"
+$Repo = "KamilWachnicki/spicetify-pm"
 $Bin = "spicepm"
 
 function Write-Info($msg) { Write-Host $msg -ForegroundColor Green }

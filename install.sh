@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-REPO="kamil/spicepm"
+REPO="KamilWachnicki/spicetify-pm"
 BIN="spicepm"
 INSTALL_DIR="${SPICEPM_INSTALL_DIR:-$HOME/.local/bin}"
 TARGET=""
