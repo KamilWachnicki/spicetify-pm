@@ -133,6 +133,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(windows))]
     fn linux_uses_xdg_then_home() {
         let xdg = fake_env(&[("XDG_CONFIG_HOME", "/xdg"), ("HOME", "/home/u")]);
         assert_eq!(spicetify_dir_with(&xdg), PathBuf::from("/xdg/spicetify"));
@@ -145,6 +146,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(windows))]
     fn empty_env_values_are_ignored_like_the_go_source() {
         let env = fake_env(&[
             ("SPICETIFY_CONFIG", ""),
@@ -158,6 +160,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(windows))]
     fn state_dir_prefers_xdg_state_home() {
         let env = fake_env(&[("XDG_STATE_HOME", "/state"), ("HOME", "/h")]);
         assert_eq!(state_dir_with(&env), PathBuf::from("/state/spicetify"));
@@ -177,5 +180,31 @@ mod tests {
     }
     fn config_file_for(env: &dyn Fn(&str) -> Option<String>) -> PathBuf {
         spicetify_dir_with(&env).join("config-xpui.ini")
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn windows_uses_appdata() {
+        let appdata = "C:/Users/u/AppData/Roaming";
+        let env = fake_env(&[("APPDATA", appdata)]);
+        assert_eq!(
+            spicetify_dir_with(&env),
+            PathBuf::from(appdata).join("spicetify")
+        );
+        assert_eq!(
+            state_dir_with(&env),
+            PathBuf::from(appdata).join("spicetify")
+        );
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn windows_missing_appdata_is_relative_fallback() {
+        let env = fake_env(&[]);
+        assert_eq!(
+            spicetify_dir_with(&env),
+            PathBuf::from("").join("spicetify")
+        );
+        assert_eq!(state_dir_with(&env), PathBuf::from("").join("spicetify"));
     }
 }
