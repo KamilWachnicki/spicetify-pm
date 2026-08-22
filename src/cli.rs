@@ -17,6 +17,10 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub apply: bool,
 
+    /// Skip the administrator/root guard (NOT RECOMMENDED)
+    #[arg(long, global = true)]
+    pub bypass_admin: bool,
+
     /// Increase log verbosity (-v info, -vv debug)
     #[arg(short = 'v', long, action = clap::ArgAction::Count, global = true)]
     pub verbose: u8,

@@ -5,7 +5,7 @@ install, update, and remove themes, extensions, and CSS snippets using the
 **same sources, fetching logic, and filtering rules as the official
 [Spicetify Marketplace](https://github.com/spicetify/marketplace)**.
 
-Built in Rust (edition 2024). Linux-first; also runs on macOS and Windows.
+Built in Rust. Linux-first; also runs on macOS and Windows.
 Single static binary, no runtime dependencies beyond `spicetify` itself.
 
 ---
@@ -66,8 +66,19 @@ spicepm theme set [name] [scheme] | theme scheme <scheme> | theme current
 spicepm cache path|clear
 ```
 
-Global flags: `--no-cache`, `--apply`, `-v/-vv` logging, `--json` on read
-commands.
+Global flags: `--no-cache`, `--apply`, `--bypass-admin`, `-v/-vv` logging,
+`--json` on read commands.
+
+### Running as administrator/root
+
+spicepm **refuses to run elevated** (effective UID 0 on Linux/macOS, an
+elevated token on Windows) — elevated sessions leave admin-owned files that
+break spicetify for the regular user later, the same reason the spicetify CLI
+itself guards this. Override when you genuinely need it:
+
+```sh
+sudo spicepm search --bypass-admin
+```
 
 ### search
 

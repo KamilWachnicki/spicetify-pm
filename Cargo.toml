@@ -29,6 +29,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = "2"
+rustix = { version = "0.38", features = ["process"] }
 
 [dev-dependencies]
 insta = "1"
@@ -36,7 +37,7 @@ tempfile = "3"
 wiremock = "0.6"
 
 [lints.rust]
-unsafe_code = "forbid"
+unsafe_code = "deny"
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }
@@ -49,3 +50,9 @@ missing_panics_doc = "allow"
 lto = true
 strip = true
 codegen-units = 1
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_UI_Shell"] }
+
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "0.38", features = ["process"] }

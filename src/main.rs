@@ -6,6 +6,7 @@ mod http;
 mod ledger;
 mod lockfile;
 mod market;
+mod platform;
 mod spicetify;
 mod ui;
 
@@ -16,6 +17,11 @@ async fn main() {
     let args = cli::Cli::parse();
 
     init_tracing(args.verbose);
+
+    if let Err(err) = platform::enforce(platform::is_privileged(), args.bypass_admin) {
+        ui::error(err);
+        std::process::exit(1);
+    }
 
     let exit_code = match run(args).await {
         Ok(()) => 0,
