@@ -22,8 +22,8 @@ pub fn is_privileged() -> bool {
 
 #[cfg(windows)]
 fn is_windows_elevated() -> bool {
-    /// SAFETY: `IsUserAnAdmin` takes no arguments and only queries the
-    /// calling process's token; it cannot dereference invalid memory.
+    // SAFETY: `IsUserAnAdmin` takes no arguments and only queries the
+    // calling process's token; it cannot dereference invalid memory.
     #[allow(unsafe_code)]
     unsafe {
         windows_sys::Win32::UI::Shell::IsUserAnAdmin() != 0
