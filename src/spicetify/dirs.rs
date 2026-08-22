@@ -186,7 +186,8 @@ mod tests {
     #[cfg(windows)]
     fn windows_uses_appdata() {
         let appdata = "C:/Users/u/AppData/Roaming";
-        let env = fake_env(&[("APPDATA", appdata)]);
+        let pairs = [("APPDATA", appdata)];
+        let env = fake_env(&pairs);
         assert_eq!(
             spicetify_dir_with(&env),
             PathBuf::from(appdata).join("spicetify")
