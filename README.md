@@ -1,128 +1,263 @@
 # spicepm
 
-A Spicetify **Marketplace package manager** for your terminal — discover, install,
-update, and remove themes, extensions, and CSS snippets using the **same sources,
-fetching logic, and filtering rules as the official
+A Spicetify **Marketplace package manager** for your terminal - discover,
+install, update, and remove themes, extensions, and CSS snippets using the
+**same sources, fetching logic, and filtering rules as the official
 [Spicetify Marketplace](https://github.com/spicetify/marketplace)**.
 
-Built in Rust (edition 2024). Linux-first, also runs on macOS and Windows.
+Built in Rust (edition 2024). Linux-first; also runs on macOS and Windows.
+Single static binary, no runtime dependencies beyond `spicetify` itself.
 
-## Why
+---
 
-The official marketplace is a Spotify-embedded app. `spicepm` gives the same
-catalogue to the CLI workflow: scriptable installs, reproducible setup, no UI
-required.
+## Highlights
 
-## Install / build
+- **Real marketplace catalogue** - GitHub topic search over
+  `spicetify-extensions` / `spicetify-themes`, official blacklist + archived
+  filtering, manifest validation identical to the web app (invalid entries are
+  skipped exactly where the app skips them)
+- **Interactive pager** - 10 results per page with keyboard navigation, live
+  `STATUS`/`ENABLED` columns, and digit keys that install/uninstall/toggle
+  rows in place
+- **Safe by default** - every action prints an exact summary of what will be
+  written/deleted *before* it happens; destructive moves require confirmation
+- **Lockfile** - snapshot your installed set and restore it anywhere with one
+  command (`spicepm lock` → zero-arg `spicepm install`)
+- **Clean reinstalls** - theme updates wipe the theme folder and reinstall
+  from scratch (with local-drift detection), so you always match upstream
+
+## Build
 
 ```sh
 cargo install --path .        # or: cargo build --release
 ```
 
-Requires [spicetify](https://spicetify.app) to be installed (`SPICETIFY_CONFIG`
-is honoured if you use a custom location).
+Requires [spicetify](https://spicetify.app) to already be set up. The config
+directory is discovered the same way the spicetify CLI does it:
+`SPICETIFY_CONFIG` env var → `%APPDATA%\spicetify` (Windows) /
+`$XDG_CONFIG_HOME|~/.config` + `/spicetify` (Linux & macOS).
 
-### GitHub API token (recommended)
+### GitHub token (recommended)
 
-Unauthenticated GitHub API calls are limited to 60/hour. Export a token to raise
-the limit:
+Unauthenticated GitHub API calls are limited to 60/hour. Export a token to
+raise the limit - checked in order:
 
 ```fish
-set -x GITHUB_TOKEN ghp_xxxx    # fish
-export GITHUB_TOKEN=ghp_xxxx   # bash/zsh
+set -x GITHUB_TOKEN ghp_xxxx     # fish
+export GITHUB_TOKEN=ghp_xxxx    # bash/zsh
 ```
 
 `GH_TOKEN` and `SPICEPM_GITHUB_TOKEN` are also accepted.
 
-## Commands
+---
+
+## Usage
 
 ```
-spicepm search [query] [--type ext|theme] [--sort stars|newest|oldest|lastUpdated|mostStale|a-z|z-a]
-spicepm info <user/repo|url>              # manifests, stars, authors, tags
-spicepm install <user/repo[#name]|url>    # extension or theme
-spicepm uninstall <id|name|file>
-spicepm update [item]                     # default: everything
+spicepm search [query] [options]
+spicepm info <user/repo|url>
+spicepm install [<user/repo[#name]|url>] [--lockfile <path>]
+spicepm uninstall <id|name|file> [--yes]
+spicepm update [target]
 spicepm list installed
+spicepm lock [--out <path>]
 spicepm snippets list|show|add|remove|installed
-spicepm theme set <folder> [scheme] | scheme <scheme> | current
+spicepm theme set [name] [scheme] | theme scheme <scheme> | theme current
 spicepm cache path|clear
 ```
 
-Global flags: `--no-cache`, `--apply` (run `spicetify apply` automatically),
-`-v/-vv` logging, `--json` on read commands.
+Global flags: `--no-cache`, `--apply`, `-v/-vv` logging, `--json` on read
+commands.
 
-On a TTY, `search` pages results 10 at a time — navigate with `←`/`→`
-(or `p`/`n`), jump with `g`/`G`, quit with `q`, and press a row's number
-(`0`–`9`) to act on it: uninstalled extensions install (and stay browsing),
-installed extensions toggle to uninstall, themes show a full install
-summary and ask for confirmation. Every selection spells out exactly which
-files land where before anything happens. Piped output and `--json`
-always print the full result set; `--page N` limits fetching to a single
-GitHub results page.
-
-### Examples
+### search
 
 ```sh
-spicepm search bloom --type theme --sort stars
-spicepm install Comfy-Themes/Spicetify#Comfy
-spicepm snippets add "Hamsters Dancing"
-spicepm theme set Comfy mocha
-spicepm update all --apply
+spicepm search --type theme --sort stars          # whole themes catalogue
+spicepm search bloom --type theme                 # substring filter
+spicepm search --json adblock                     # machine-readable output
+spicepm search --page 1 --sort a-z                # single API page
+spicepm search --archived                         # include archived repos
 ```
+
+Every result row is an **individual manifest entry** - a multi-extension repo
+like `rxri/spicetify-extensions` lists each extension separately, matching how
+the marketplace grid renders cards. Repos without any valid manifest are
+hidden. Columns: `# TITLE TYPE STATUS STARS DESCRIPTION`.
+
+On a TTY the list becomes an interactive pager:
+
+| Key | Action |
+|---|---|
+| `←`/`→` or `p`/`n` | page |
+| `g`/`G` | first/last page |
+| `0`–`9` | act on that row (see below) |
+| `q`/Esc/Ctrl-C | quit |
+
+What a digit press does:
+
+- **uninstalled extension** → install summary → confirm (`proceed with
+  install?`) → installs; the pager stays open on the same page so you can keep
+  picking
+- **installed extension** → removal summary → confirm uninstall; toggling both
+  ways is fully reversible from the keyboard
+- **uninstalled theme** → full file-by-file install summary → confirm →
+  installs, colour scheme chosen interactively when several exist; the pager
+  closes after one theme operation
+- **installed theme** → removal summary → confirm uninstall; deactivates and
+  clears `current_theme`/`color_scheme` only if that exact theme is active
+
+Rows already installed show a green `✔ installed` status; enabled snippets
+show green keys. Colors respect `NO_COLOR` and disappear when piping.
+
+Piped output and `--json` always print the complete result set without prompts;
+`--page N` limits fetching to a single GitHub results page.
+
+### info
+
+```sh
+spicepm info Comfy-Themes/Spicetify
+spicepm info https://github.com/rxri/spicetify-extensions --json
+```
+
+Shows repo metadata plus every valid manifest (id, authors, branch, tags,
+download URLs) after the same blacklist check used by install.
+
+### install / uninstall / update
+
+```sh
+spicepm install rxri/spicetify-extensions#adblockify
+spicepm install Comfy-Themes/Spicetify#Comfy      # scheme prompt if needed
+spicepm install https://github.com/someone/some-theme
+spicepm uninstall adblock                          # fragment match + y/N
+spicepm uninstall adblock --yes                    # skip confirmation
+spicepm update StarryNight                         # clean-reinstall one item
+spicepm update                                     # everything
+```
+
+- **Extensions** land in `<SPICETIFY_CONFIG>/Extensions/<file>` and are
+  registered under `[AdditionalOptions] extensions`.
+- **Themes** land in `Themes/<name>/` - `user.css`, `color.ini`, every
+  `include[]` file, and the first JS include is bridged to `theme.js` so
+  spicetify auto-injects it. `current_theme` + your chosen `color_scheme` are
+  written to `[Setting]`. If the theme ships scripts, spicepm also sets
+  `inject_theme_js=1` for you.
+- **Theme updates are clean reinstalls**: the folder is wiped and rebuilt from
+  upstream, local drift (edits/orphans) is detected and reported, and your
+  previously selected colour scheme is restored when it still exists.
+- After mutating commands spicepm prints `run "spicetify apply"`; pass global
+  `--apply` to run it for you.
+
+### Lockfile
+
+```sh
+spicepm lock                       # write <SPICETIFY_CONFIG>/spicepm/spicepm.lock
+spicepm lock --out ~/dotfiles/spicepm.lock
+cd ~/dotfiles && spicepm install   # restore everything, schemes included
+```
+
+The lockfile records each pinned item (kind, id, user/repo, branch, chosen
+colour scheme) plus enabled snippet keys. It is **auto-refreshed on every
+install/uninstall/update**, so it never drifts from reality. Zero-arg install
+resolves `--lockfile` → `./spicepm.lock` → error with guidance.
+
+### snippets
+
+```sh
+spicepm snippets list              # interactive pager, digits toggle
+spicepm snippets add "Hamsters Dancing"
+spicepm snippets remove "Hamsters Dancing"
+spicepm snippets show "Sonic Dancing"
+spicepm snippets installed
+```
+
+Enabled snippets are applied through a generated companion extension
+(`Extensions/spicepm-snippets.js`) that injects them at runtime - the same
+mechanism the marketplace app uses, surviving theme switches with zero theme
+file pollution. The companion is rebuilt automatically whenever extensions are
+installed/uninstalled, and orphaned files in `Extensions/` are cleaned up.
+
+### theme
+
+```sh
+spicepm theme set                  # pick from installed themes interactively
+spicepm theme set Cattpuccin mocha
+spicepm theme scheme latte
+spicepm theme current --json
+```
+
+### cache
+
+Responses are cached on disk with per-type TTLs (search 10 min, manifests 24 h,
+blacklist/snippets 1 h).
+
+```sh
+spicepm cache path                 # print the cache directory
+spicepm cache clear
+```
+
+---
+
+## How it behaves
+
+- **Identity**: every item gets a unique, meaningful id -
+  `{user}/{repo}#{Manifest Name}` (e.g. `Comfy-Themes/Spicetify#Comfy`) that
+  matches the install target syntax; the snippet companion lives at reserved id
+  `@spicepm/snippets`.
+- **Ledger**: `<SPICETIFY_CONFIG>/spicepm/ledger.json` tracks provenance
+  (source, branch, resolved URLs, sha256 per file, config references). This is
+  what powers `update`, exact uninstalls, and `STATUS` marks.
+- **Atomicity**: config and ledger writes go through temp-file renames; failed
+  actions leave the previous state intact.
+- **Rate limits**: exhausted quota produces a clear message with the reset
+  time; retries cover transient network/server errors.
+- **Safety**: paths recorded in the ledger cannot escape the spicetify dir;
+  downloads overwrite atomically; two items can't claim the same extension
+  filename.
 
 ## Marketplace compliance
 
-`spicepm` ports the marketplace's remote logic (`FetchRemotes.ts`) exactly:
+`spicepm` ports the marketplace's remote logic field by field:
 
 | [Publishing rule](https://github.com/spicetify/marketplace/wiki/Publishing-to-Marketplace) | spicepm |
 |---|---|
 | Discovery via `spicetify-extensions` / `spicetify-themes` topics | ✅ topic search, `per_page=100`, paginated |
 | `manifest.json` in repo root | ✅ fetched from raw + default branch |
 | Array manifests (multi-extension repos) | ✅ every entry expanded individually |
-| Field requirements/optionality | ✅ mirrors the app's zod schema field-by-field (more lenient than the wiki templates where the app is too) |
-| `branch` override / default branch fallback | ✅ |
-| Authors fallback to repo owner; author URLs | ✅ incl. dangerous-scheme neutralization |
-| http(s) URL support for `preview/main/readme/usercss/schemes` | ✅ verbatim when absolute, raw-relative otherwise |
-| Blacklist + archived-repo filtering | ✅ glob semantics identical (`*` = one path segment) |
-| Theme `schemes` → colour-scheme choice | ✅ parsed & prompted at install |
-| Theme `include[]` scripts | ✅ downloaded **and** bridged to `theme.js` so spicetify auto-injects them on disk |
-| Snippets from `resources/snippets.json` | ✅ applied via companion extension |
+| Field requirements/optionality | ✅ mirrors the app's zod schema |
+| `branch` override / default fallback | ✅ |
+| Authors fallback to repo owner; URL sanitization | ✅ |
+| http(s) URL support for `preview/main/readme/usercss/schemes` | ✅ verbatim vs raw-relative resolution |
+| Blacklist + archived filtering | ✅ glob semantics identical (`*` = one path segment) |
+| Theme `schemes` | ✅ parsed & offered at install |
+| Theme `include[]` scripts | ✅ downloaded **and** bridged to `theme.js`; `inject_theme_js` enabled automatically |
+| Snippets from `resources/snippets.json` | ✅ via companion extension |
 | Custom apps (`spicetify-apps`) | ⏳ planned milestone |
-| Search results per manifest item | ✅ multi-extension repos list each entry separately; manifest-less repos hidden |
-
-Additional details:
-
-## How installs work
-
-- **Extensions** are downloaded to `<SPICETIFY_CONFIG>/Extensions/` and
-  registered in `config-xpui.ini` under `[AdditionalOptions] extensions`
-  (pipe-separated list, deduplicated).
-- **Themes** download `user.css` → `Themes/<name>/user.css`,
-  schemes → `color.ini`, and every `include[]` file (relative layout preserved;
-  absolute-URL entries store under their filename). You pick a colour scheme at
-  install time; `current_theme` / `color_scheme` are set in `[Setting]`.
-- **Snippets** are applied through a generated companion extension
-  (`Extensions/spicepm-snippets.js`) that injects the enabled CSS at runtime —
-  the same mechanism the marketplace app uses, surviving theme switches without
-  touching theme files.
-
-Everything installed is tracked in `<SPICETIFY_CONFIG>/spicepm/ledger.json`
-(provenance + file hashes), which powers `update` and clean uninstalls.
-Config edits are atomic; responses are cached on disk with TTLs
-(`cache clear` resets).
 
 ## Development
 
 ```sh
-cargo test          # 47 unit tests (schema parity, blacklist globs, INI roundtrip, ...)
-cargo clippy --all-targets   # zero warnings, pedantic lints on
+cargo test                    # 64 unit tests
+cargo clippy --all-targets    # zero warnings (pedantic lints, unsafe forbidden)
 cargo fmt --check
+cargo build --release
 ```
 
-Roadmap: custom apps support (`topic:spicetify-apps`, M6), shell completions +
-man page, `self-update` via marketplace releases API, wiremock-based
-integration suite, cargo-dist release pipeline.
+Layout of interest:
+
+| Path | Responsibility |
+|---|---|
+| `src/market/` | marketplace parity: search, manifests (zod-parity validation), blacklist globs, snippet fetch, URL rules |
+| `src/spicetify/` | spicetify CLI parity: directory layout, `config-xpui.ini` editing, `color.ini` parsing |
+| `src/commands/` | one module per command group + shared pager plumbing |
+| `src/http.rs`, `src/cache.rs` | client (token, retries, rate-limit reporting) + TTL disk cache |
+| `src/ledger.rs` | installed-state tracking (ids, hashes, provenance) |
+
+Environment: `RUST_LOG=-v` equivalent via flags; `NO_COLOR` respected;
+`SPICETIFY_CACHE` overrides the cache dir.
+
+Roadmap: custom apps support (`topic:spicetify-apps`), shell completions +
+man pages, wiremock integration suite, cargo-dist release pipeline.
 
 ## License
 
-MIT
+LGPL 2.1

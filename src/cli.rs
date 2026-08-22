@@ -73,9 +73,7 @@ pub enum Commands {
         #[arg(long)]
         json: bool,
     },
-    /// Install an extension or theme from a marketplace repo
-    /// Install an extension or theme. With no target: (re)install
-    /// everything from spicepm.lock
+    /// Install extensions/themes, or restore everything from spicepm.lock
     Install {
         /// `user/repo[#manifest-name]`, or a URL; omit to use the lockfile
         target: Option<String>,
@@ -98,6 +96,7 @@ pub enum Commands {
         #[arg(short, long)]
         yes: bool,
     },
+    /// List installed items
     #[command(subcommand)]
     List(ListCommands),
     /// Re-fetch and re-install an item (default: everything)
@@ -105,10 +104,13 @@ pub enum Commands {
         /// Item id or unique name fragment; omit for all
         target: Option<String>,
     },
+    /// Browse and manage CSS snippets
     #[command(subcommand)]
     Snippets(SnippetCommands),
+    /// Inspect and switch themes
     #[command(subcommand)]
     Theme(ThemeCommands),
+    /// Manage cached responses
     #[command(subcommand)]
     Cache(CacheCommands),
 }
