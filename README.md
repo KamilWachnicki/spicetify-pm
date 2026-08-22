@@ -26,7 +26,29 @@ Single static binary, no runtime dependencies beyond `spicetify` itself.
 - **Clean reinstalls** - theme updates wipe the theme folder and reinstall
   from scratch (with local-drift detection), so you always match upstream
 
-## Build
+## Install
+
+One-liners that fetch the latest release binary (checksum-verified when the
+release ships a `.sha256` sidecar), install into your user bin/PATH, and print
+next steps:
+
+Linux / macOS:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/kamil/spicepm/main/install.sh | bash
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/kamil/spicepm/main/install.ps1 | iex
+```
+
+Both scripts accept `--version vX.Y.Z` / `-Version vX.Y.Z` to pin a release,
+and `--dir` / `-InstallDir` to change the target directory. Release assets are
+named `spicepm-<tag>-<arch>-<os>.tar.gz|.zip`.
+
+Build from source instead:
 
 ```sh
 cargo install --path .        # or: cargo build --release
@@ -102,7 +124,7 @@ On a TTY the list becomes an interactive pager:
 | `←`/`→` or `p`/`n` | page |
 | `g`/`G` | first/last page |
 | `0`–`9` | act on that row (see below) |
-| `q`/Esc/Ctrl-C | quit |
+| `q`/`Esc`/`Ctrl+C` | quit |
 
 What a digit press does:
 
@@ -247,7 +269,7 @@ spicepm cache clear
 ## Development
 
 ```sh
-cargo test                    # 64 unit tests
+cargo test                    # 66 unit tests
 cargo clippy --all-targets    # zero warnings (pedantic lints, unsafe forbidden)
 cargo fmt --check
 cargo build --release
@@ -266,8 +288,7 @@ Layout of interest:
 Environment: `RUST_LOG=-v` equivalent via flags; `NO_COLOR` respected;
 `SPICETIFY_CACHE` overrides the cache dir.
 
-Roadmap: custom apps support (`topic:spicetify-apps`), shell completions +
-man pages, wiremock integration suite, cargo-dist release pipeline.
+Roadmap: custom apps support (`topic:spicetify-apps`), shell completions, cargo-dist release pipeline.
 
 ## License
 
