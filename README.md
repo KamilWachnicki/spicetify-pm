@@ -27,12 +27,7 @@ Single static binary, no runtime dependencies beyond `spicetify` itself.
   from scratch (with local-drift detection), so you always match upstream
 
 ## Install
-
-One-liners that fetch the latest release binary (checksum-verified when the
-release ships a `.sha256` sidecar), install into your user bin/PATH, and print
-next steps:
-
-Linux / macOS:
+Linux / MacOS:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/KamilWachnicki/spicetify-pm/main/install.sh | bash
@@ -51,7 +46,7 @@ named `spice-pm-<tag>-<arch>-<os>.tar.gz|.zip`.
 Build from source instead:
 
 ```sh
-cargo install --path .        # or: cargo build --release
+cargo install --path .       # or: cargo build --release
 ```
 
 Requires [spicetify](https://spicetify.app) to already be set up. The config
@@ -59,14 +54,33 @@ directory is discovered the same way the spicetify CLI does it:
 `SPICETIFY_CONFIG` env var → `%APPDATA%\spicetify` (Windows) /
 `$XDG_CONFIG_HOME|~/.config` + `/spicetify` (Linux & macOS).
 
+## Platform Support
+
+**Windows and macOS have not been tested yet.**
+
+`spice-pm` is currently developed and tested on Linux. If you're using Windows or macOS, **please give it a try and report any issues** you encounter by submitting an issue. This will help improve platform support.
+
 ### GitHub token (recommended)
 
 Unauthenticated GitHub API calls are limited to 60/hour. Export a token to
-raise the limit - checked in order:
+raise the limit:
 
-```fish
-set -x GITHUB_TOKEN ghp_xxxx     # fish
-export GITHUB_TOKEN=ghp_xxxx    # bash/zsh
+Linux
+
+```bash
+echo 'export GITHUB_TOKEN="your_token_here"' >> ~/.bashrc
+```
+
+Windows
+
+```powershell
+[Environment]::SetEnvironmentVariable("GITHUB_TOKEN", "your_token_here", "User")
+```
+
+MacOS
+
+```bash
+echo 'export GITHUB_TOKEN="your_token_here"' >> ~/.profile
 ```
 
 `GH_TOKEN` and `SPICEPM_GITHUB_TOKEN` are also accepted.
@@ -160,13 +174,15 @@ download URLs) after the same blacklist check used by install.
 
 ```sh
 spice-pm install rxri/spicetify-extensions#adblockify
-spice-pm install Comfy-Themes/Spicetify#Comfy      # scheme prompt if needed
+spice-pm install Comfy-Themes/Spicetify#Comfy              # scheme prompt if needed
 spice-pm install https://github.com/someone/some-theme
-spice-pm remove adblock                            # fragment match + y/N
-spice-pm remove adblock --yes                      # skip confirmation
-spice-pm update StarryNight                         # clean-reinstall one item
-spice-pm update                                     # everything
+spice-pm remove rxri/spicetify-extensions#adblockify       # fragment match + y/N
+spice-pm remove rxri/spicetify-extensions#adblockify --yes # skip confirmation
+spice-pm update Comfy-Themes/Spicetify#Comfy               # clean-reinstall one item
+spice-pm update                                            # everything
 ```
+
+`spice-pm` uses repository-based package references because the Spicetify marketplace is currently poorly moderated and decentralized. Using the repository and item name directly makes package identification more explicit and avoids conflicts, using `spice-pm search` and it's filters is recommended for a hassle-free installation.
 
 - **Extensions** land in `<SPICETIFY_CONFIG>/Extensions/<file>` and are
   registered under `[AdditionalOptions] extensions`.
@@ -191,7 +207,7 @@ cd ~/dotfiles && spice-pm install   # restore everything, schemes included
 
 The lockfile records each pinned item (kind, id, user/repo, branch, chosen
 colour scheme) plus enabled snippet keys. It is **auto-refreshed on every
-install/remove/update**, so it never drifts from reality. Zero-arg install
+install/remove/update**, so it never drifts. Zero-arg install
 resolves `--lockfile` → `./spicepm.lock` → error with guidance.
 
 ### snippets
@@ -352,7 +368,7 @@ Layout of interest:
 Environment: `RUST_LOG=-v` equivalent via flags; `NO_COLOR` respected;
 `SPICETIFY_CACHE` overrides the cache dir.
 
-Roadmap: custom apps support (`topic:spicetify-apps`), shell completions, cargo-dist release pipeline.
+Roadmap: custom apps support (`topic:spicetify-apps`), shell completions.
 
 ## License
 
