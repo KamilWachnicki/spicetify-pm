@@ -82,8 +82,8 @@ fn snippets(json: bool) -> Result<()> {
 
 fn empty_message(kind_filter: Option<Kind>) -> &'static str {
     match kind_filter {
-        Some(Kind::Theme) => "no themes installed via spicepm yet",
-        Some(Kind::Extension) => "no extensions installed via spicepm yet",
-        _ => "nothing installed via spicepm yet",
+        Some(Kind::Theme) => "no themes installed via spice-pm yet",
+        Some(Kind::Extension) => "no extensions installed via spice-pm yet",
+        _ => "nothing installed via spice-pm yet",
     }
 }

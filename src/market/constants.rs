@@ -16,22 +16,6 @@ pub const BLACKLIST_URL: &str =
 pub const MARKETPLACE_RAW_BASE: &str =
     "https://raw.githubusercontent.com/spicetify/marketplace/main";
 
-/// This tool's own repository, used by `self-update`.
-pub const SELF_REPO: &str = "KamilWachnicki/spicetify-pm";
-
-pub fn latest_release_api_url() -> String {
-    format!("https://api.github.com/repos/{SELF_REPO}/releases/latest")
-}
-
-pub fn install_script_raw_url(tag: &str) -> String {
-    let script = if cfg!(windows) {
-        "install.ps1"
-    } else {
-        "install.sh"
-    };
-    format!("https://raw.githubusercontent.com/{SELF_REPO}/{tag}/{script}")
-}
-
 const GITHUB_SEARCH_URL: &str = "https://api.github.com/search/repositories";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]

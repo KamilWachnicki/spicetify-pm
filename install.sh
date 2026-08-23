@@ -55,9 +55,22 @@ case "$(uname -m)" in
   *) err "unsupported architecture: $(uname -m)"; exit 1 ;;
 esac
 
+# Fetch the latest release tag from the GitHub API. Uses GITHUB_TOKEN
+# (or SPICEPM_GITHUB_TOKEN / GH_TOKEN) as a bearer token when set, so
+# installs don't trip over unauthenticated rate limits.
+fetch_latest_tag() {
+  local url="https://api.github.com/repos/$REPO/releases/latest"
+  local token="${SPICEPM_GITHUB_TOKEN:-${GITHUB_TOKEN:-${GH_TOKEN:-}}}"
+  if [[ -n "$token" ]]; then
+    curl -fsSL -H "Authorization: Bearer $token" "$url"
+  else
+    curl -fsSL "$url"
+  fi
+}
+
 if [[ -z "$TARGET" ]]; then
   info "fetching the latest release"
-  TARGET=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" |
+  TARGET=$(fetch_latest_tag |
     sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p') || true
   if [[ -z "$TARGET" ]]; then
     err "no release found on $REPO"

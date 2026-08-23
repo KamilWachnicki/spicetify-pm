@@ -228,74 +228,19 @@ pub async fn run(
 
                 match (item.kind, was_installed) {
                     // already in: digit toggles to remove (confirmed)
-                    (crate::market::types::ItemKind::Extension, true) => {
-                        print_remove_summary(item);
-                        let confirmed = dialoguer::Confirm::with_theme(
-                            &dialoguer::theme::ColorfulTheme::default(),
-                        )
-                        .with_prompt("really remove this extension?")
-                        .default(false)
-                        .interact()
-                        .unwrap_or(false);
-                        if !confirmed {
-                            ui::info("skipped - still installed");
+                    (kind, true) => {
+                        if !confirm_and_remove(item, kind_label(kind))? {
                             continue;
                         }
-                        let mut led = crate::ledger::Ledger::load()?;
-                        crate::commands::remove::remove_entry(&mut led, &item.id())?;
-                        ui::success(format!(
-                            "removed extension {}",
-                            ui::style_title(&item.title)
-                        ));
-                    }
-
-                    // installed: digit removes the theme entirely while
-                    // staying in the pager. Config is only cleared when
-                    // this exact theme is the one currently applied.
-                    (crate::market::types::ItemKind::Theme, true) => {
-                        print_remove_summary(item);
-                        let confirmed = dialoguer::Confirm::with_theme(
-                            &dialoguer::theme::ColorfulTheme::default(),
-                        )
-                        .with_prompt("really remove this theme?")
-                        .default(false)
-                        .interact()
-                        .unwrap_or(false);
-                        if !confirmed {
-                            ui::info("skipped - still installed");
-                            continue;
-                        }
-                        let mut led = crate::ledger::Ledger::load()?;
-                        crate::commands::remove::remove_entry(&mut led, &item.id())?;
-                        ui::success(format!("removed theme {}", ui::style_title(&item.title)));
                     }
 
                     // not installed: themes are heavy (folder rewrite +
                     // scheme choice), so confirm before one goes in;
                     // declining keeps browsing
-                    (crate::market::types::ItemKind::Theme, false) => {
-                        print_install_summary(item);
-                        let confirmed = dialoguer::Confirm::with_theme(
-                            &dialoguer::theme::ColorfulTheme::default(),
-                        )
-                        .with_prompt("proceed with install?")
-                        .default(false)
-                        .interact()
-                        .unwrap_or(false);
-                        if !confirmed {
-                            ui::info(format!("skipped {}", item.id()));
+                    (ItemKind::Theme, false) => {
+                        if !confirm_and_install(http, item).await? {
                             continue;
                         }
-
-                        println!();
-                        ui::info(format!(
-                            "installing {} [{}] ...",
-                            ui::style_title(&item.title),
-                            item.id()
-                        ));
-                        // keep prompts available (e.g. colour-scheme choice)
-                        crate::commands::install::install_item(http, item, false).await?;
-
                         // one theme operation per session
                         println!();
                         ui::reminder_apply(crate::commands::apply_hook::requested());
@@ -304,26 +249,10 @@ pub async fn run(
 
                     // fresh install: summary then confirm (accidental
                     // keypresses shouldn't touch the system)
-                    (crate::market::types::ItemKind::Extension, false) => {
-                        print_install_summary(item);
-                        let confirmed = dialoguer::Confirm::with_theme(
-                            &dialoguer::theme::ColorfulTheme::default(),
-                        )
-                        .with_prompt("proceed with install?")
-                        .default(false)
-                        .interact()
-                        .unwrap_or(false);
-                        if !confirmed {
-                            ui::info(format!("skipped {}", item.id()));
+                    (ItemKind::Extension, false) => {
+                        if !confirm_and_install(http, item).await? {
                             continue;
                         }
-                        println!();
-                        ui::info(format!(
-                            "installing {} [{}] ...",
-                            ui::style_title(&item.title),
-                            item.id()
-                        ));
-                        crate::commands::install::install_item(http, item, false).await?;
                     }
                 }
                 changes_count += 1;
@@ -392,7 +321,7 @@ fn print_install_summary(item: &crate::market::types::CardItem) {
 }
 
 /// Print everything a selection will remove from disk and config when the
-/// digit toggles an installed extension to removed.
+/// digit toggles an installed item to removed.
 fn print_remove_summary(item: &crate::market::types::CardItem) {
     ui::info(format!(
         "about to remove {} [{}]",
@@ -413,6 +342,54 @@ fn print_remove_summary(item: &crate::market::types::CardItem) {
             println!("         reset current_theme and color_scheme");
         }
     }
+}
+
+/// Summarize + confirm + remove an installed item (`kind_label` names it in
+/// the prompts). Returns false when the user declined - the caller stays in
+/// the pager without counting a change.
+fn confirm_and_remove(item: &crate::market::types::CardItem, label: &str) -> Result<bool> {
+    print_remove_summary(item);
+    let confirmed = dialoguer::Confirm::with_theme(&dialoguer::theme::ColorfulTheme::default())
+        .with_prompt(format!("really remove this {label}?"))
+        .default(false)
+        .interact()
+        .unwrap_or(false);
+    if !confirmed {
+        ui::info("skipped - still installed");
+        return Ok(false);
+    }
+    let mut led = crate::ledger::Ledger::load()?;
+    crate::commands::remove::remove_entry(&mut led, &item.id())?;
+    ui::success(format!("removed {label} {}", ui::style_title(&item.title)));
+    Ok(true)
+}
+
+/// Summarize + confirm + install an uninstalled item. Returns false when the
+/// user declined - the caller stays in the pager without counting a change.
+async fn confirm_and_install(
+    http: &HttpClient,
+    item: &crate::market::types::CardItem,
+) -> Result<bool> {
+    print_install_summary(item);
+    let confirmed = dialoguer::Confirm::with_theme(&dialoguer::theme::ColorfulTheme::default())
+        .with_prompt("proceed with install?")
+        .default(false)
+        .interact()
+        .unwrap_or(false);
+    if !confirmed {
+        ui::info(format!("skipped {}", item.id()));
+        return Ok(false);
+    }
+
+    println!();
+    ui::info(format!(
+        "installing {} [{}] ...",
+        ui::style_title(&item.title),
+        item.id()
+    ));
+    // keep prompts available (e.g. colour-scheme choice)
+    crate::commands::install::install_item(http, item, false).await?;
+    Ok(true)
 }
 
 fn result_table(

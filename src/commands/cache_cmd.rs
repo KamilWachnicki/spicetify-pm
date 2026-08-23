@@ -20,12 +20,18 @@ pub fn run_clear() -> Result<()> {
 }
 
 pub fn run_size() -> Result<()> {
-    let (count, bytes) = Cache::new()?.stats();
+    let cache = Cache::new()?;
+    let stats = cache.stats();
     println!(
-        "{count} {} ({}) in {}",
-        if count == 1 { "entry" } else { "entries" },
-        human_bytes(bytes),
-        crate::cache::cache_dir()?.display()
+        "{} {} ({}) in {}",
+        stats.entries,
+        if stats.entries == 1 {
+            "entry"
+        } else {
+            "entries"
+        },
+        human_bytes(stats.bytes),
+        cache.dir().display()
     );
     Ok(())
 }

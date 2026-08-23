@@ -5,7 +5,8 @@
 //! Layout: `<dir>/<sha256(url)>.body` + `<dir>/<sha256(url)>.meta.json`
 //! with `{ url, fetched_at, etag }` metadata. The body is always written
 //! before the metadata, so an interrupted store can only ever look expired -
-//! never falsely fresh. Entries are pruned after [`PRUNE_AFTER_SECS`].
+//! never falsely fresh. Startup sweeps also drop expired entries, corrupt
+//! metadata, orphaned bodies and abandoned temp files.
 
 use crate::errors::{Error, Result};
 use serde::{Deserialize, Serialize};
@@ -17,6 +18,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// Entries older than this are swept on startup (best effort).
 const PRUNE_AFTER_SECS: u64 = 30 * 24 * 60 * 60;
 
+/// Marker inside `atomic_write` temp file names; startup sweeps remove any
+/// leftover bearing it.
+const TMP_SUFFIX: &str = ".spicepm-tmp-";
+
 static TMP_SEQ: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -25,6 +30,22 @@ struct Meta {
     fetched_at: u64,
     #[serde(default)]
     etag: Option<String>,
+}
+
+/// What `stats` counted: number of cached bodies and their total size.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CacheStats {
+    pub entries: usize,
+    pub bytes: u64,
+}
+
+/// Next step for a cached-eligible GET, decided by [`Cache::plan`].
+#[derive(Debug)]
+pub enum Plan {
+    /// Fresh enough - serve these bytes without touching the network.
+    Serve(Vec<u8>),
+    /// Go to the network; send `etag` as `If-None-Match` when present.
+    Fetch { etag: Option<String> },
 }
 
 pub struct Cache {
@@ -72,6 +93,27 @@ impl Cache {
         Some(age_secs(self.read_meta(url)?.fetched_at))
     }
 
+    /// Decide how a cached-eligible GET for `url` should proceed: serve a
+    /// fresh body, or hit the network - conditionally when an `ETag` is on
+    /// file (`allow_cache == false` means "--no-cache": always unconditional).
+    pub fn plan(&self, url: &str, ttl_secs: u64, allow_cache: bool) -> Plan {
+        if !allow_cache {
+            return Plan::Fetch { etag: None };
+        }
+        if let Some(bytes) = self.get_fresh(url, ttl_secs) {
+            return Plan::Serve(bytes);
+        }
+        Plan::Fetch {
+            etag: self.stored_etag(url),
+        }
+    }
+
+    /// The stale body plus its age, for the last-resort fallback messaging.
+    pub fn stale_with_age(&self, url: &str) -> Option<(Vec<u8>, u64)> {
+        let bytes = self.get_stale(url)?;
+        Some((bytes, self.age_secs(url).unwrap_or_default()))
+    }
+
     /// Restart the freshness clock without refetching (304 Not Modified).
     pub fn touch(&self, url: &str) -> Result<()> {
         let mut meta = self
@@ -93,35 +135,47 @@ impl Cache {
     }
 
     /// (entry count, total body bytes)
-    pub fn stats(&self) -> (usize, u64) {
+    pub fn stats(&self) -> CacheStats {
         let Ok(entries) = std::fs::read_dir(&self.dir) else {
-            return (0, 0);
+            return CacheStats::default();
         };
-        let mut count = 0usize;
-        let mut bytes = 0u64;
+        let mut stats = CacheStats::default();
         for entry in entries
             .flatten()
             .filter(|e| e.file_name().to_string_lossy().ends_with(".body"))
         {
-            count += 1;
-            bytes += entry.metadata().map_or(0, |m| m.len());
+            stats.entries += 1;
+            stats.bytes += entry.metadata().map_or(0, |m| m.len());
         }
-        (count, bytes)
+        stats
     }
 
     /// Best-effort sweep of entries past their prune window; corrupt
-    /// metadata is treated as garbage and removed too.
+    /// metadata is treated as garbage and removed too, as are orphaned
+    /// bodies (an interrupted `store`) and abandoned `atomic_write`
+    /// temporaries.
     fn prune_stale(&self) {
         let Ok(entries) = std::fs::read_dir(&self.dir) else {
             return;
         };
         for entry in entries.flatten() {
-            let Some(stem) = entry
-                .file_name()
-                .to_str()
-                .and_then(|s| s.strip_suffix(".meta.json"))
-                .map(str::to_owned)
-            else {
+            let Some(name) = entry.file_name().to_str().map(str::to_owned) else {
+                continue;
+            };
+            if name.contains(TMP_SUFFIX) {
+                // leftover of an interrupted atomic_write
+                let _ = std::fs::remove_file(entry.path());
+                continue;
+            }
+            if let Some(stem) = name.strip_suffix(".body") {
+                // orphan body: the metadata commit never happened
+                let meta_path = self.dir.join(format!("{stem}.meta.json"));
+                if !meta_path.exists() {
+                    let _ = std::fs::remove_file(entry.path());
+                }
+                continue;
+            }
+            let Some(stem) = name.strip_suffix(".meta.json") else {
                 continue;
             };
             let body_path = self.dir.join(format!("{stem}.body"));
@@ -203,7 +257,7 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
     std::fs::create_dir_all(parent)?;
     let seq = TMP_SEQ.fetch_add(1, Ordering::Relaxed);
     let mut tmp_name = path.file_name().unwrap_or_default().to_os_string();
-    tmp_name.push(format!(".spicepm-tmp-{}-{seq}", std::process::id()));
+    tmp_name.push(format!("{TMP_SUFFIX}{}-{seq}", std::process::id()));
     let tmp = parent.join(tmp_name);
     std::fs::write(&tmp, bytes)?;
     std::fs::rename(&tmp, path)?;
@@ -316,12 +370,18 @@ mod tests {
     #[test]
     fn stats_count_bodies_only() {
         let (cache, _dir) = test_cache();
-        assert_eq!(cache.stats(), (0, 0));
+        assert_eq!(cache.stats(), CacheStats::default());
         cache
             .store("https://example.com/s1", b"12345", None)
             .unwrap();
         cache.store("https://example.com/s2", b"12", None).unwrap();
-        assert_eq!(cache.stats(), (2, 7));
+        assert_eq!(
+            cache.stats(),
+            CacheStats {
+                entries: 2,
+                bytes: 7
+            }
+        );
     }
 
     #[test]
@@ -349,6 +409,31 @@ mod tests {
         assert!(!dir.path().join(format!("{key}.body")).exists());
         assert!(!dir.path().join(format!("{bad_key}.meta.json")).exists());
         assert!(!dir.path().join(format!("{bad_key}.body")).exists());
+    }
+
+    #[test]
+    fn prune_sweeps_orphan_bodies_and_temp_files_but_keeps_live_entries() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path();
+
+        // interrupted store: body committed, meta never written
+        let key = hash_key("https://example.com/orphan");
+        std::fs::write(path.join(format!("{key}.body")), b"orphan").unwrap();
+        // abandoned atomic_write temp
+        std::fs::write(path.join(format!("{key}.body{TMP_SUFFIX}42-0")), b"junk").unwrap();
+
+        // a live entry must survive the same sweep
+        let warm = Cache::at(path.to_path_buf());
+        warm.store("https://example.com/live", b"kept", None)
+            .unwrap();
+
+        Cache::at(path.to_path_buf()); // constructor runs the sweep
+
+        assert!(!path.join(format!("{key}.body")).exists());
+        assert!(!path.join(format!("{key}.body{TMP_SUFFIX}42-0")).exists());
+        let live = hash_key("https://example.com/live");
+        assert!(path.join(format!("{live}.body")).exists());
+        assert!(path.join(format!("{live}.meta.json")).exists());
     }
 
     #[test]

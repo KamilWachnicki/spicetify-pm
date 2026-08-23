@@ -37,7 +37,14 @@ switch ($env:PROCESSOR_ARCHITECTURE) {
 if (-not $Version) {
     Write-Info "fetching the latest release"
     try {
-        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest"
+        # use a token when provided so installs don't trip over
+        # unauthenticated rate limits (same vars the CLI reads)
+        $token = @($env:SPICEPM_GITHUB_TOKEN, $env:GITHUB_TOKEN, $env:GH_TOKEN) |
+            Where-Object { $_ } |
+            Select-Object -First 1
+        $headers = if ($token) { @{ Authorization = "Bearer $token" } } else { @{} }
+        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest" `
+            -Headers $headers
         $Version = $release.tag_name
     } catch {
         Write-Err "no release found on $Repo"

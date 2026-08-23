@@ -90,7 +90,10 @@ impl HttpClient {
                     .get("x-ratelimit-remaining")
                     .and_then(|v| v.to_str().ok())
                     .map(str::to_owned);
-                if remaining.as_deref().is_none_or(|r| r == "0") || status.as_u16() == 429 {
+                // only an explicitly exhausted quota (or a bare 429) is a
+                // rate limit; any other 403 is a plain refusal (private
+                // repo, blocked path, ...) and must not be misreported
+                if status.as_u16() == 429 || remaining.as_deref() == Some("0") {
                     let reset = response
                         .headers()
                         .get("x-ratelimit-reset")
@@ -160,27 +163,32 @@ impl HttpClient {
         Ok(serde_json::from_slice(&bytes)?)
     }
 
-    /// Fetch JSON through the TTL cache. Revalidates with the stored `ETag` on
-    /// expiry (`304` responses cost no rate-limit quota), and falls back to a
-    /// stale copy when a refresh fails outright.
+    /// Fetch JSON through the TTL cache. The cache decides how to proceed
+    /// ([`Cache::plan`]): serve fresh bytes, or revalidate with the stored
+    /// `ETag` on expiry (`304` responses cost no rate-limit quota). When a
+    /// refresh fails outright, a stale copy is served as a last resort.
     pub async fn get_json_cached<T: serde::de::DeserializeOwned>(
         &self,
         url: &str,
         ttl_secs: u64,
     ) -> Result<T> {
-        if !self.no_cache
-            && let Some(bytes) = self.cache.get_fresh(url, ttl_secs)
-        {
-            tracing::debug!(url, "cache hit");
-            return Ok(serde_json::from_slice(&bytes)?);
+        match self.cache.plan(url, ttl_secs, !self.no_cache) {
+            crate::cache::Plan::Serve(bytes) => {
+                tracing::debug!(url, "cache hit");
+                Ok(serde_json::from_slice(&bytes)?)
+            }
+            crate::cache::Plan::Fetch { etag } => self.fetch_and_cache(url, etag.as_deref()).await,
         }
+    }
 
-        // --no-cache means "fresh data": no conditional requests either
-        let etag = (!self.no_cache)
-            .then(|| self.cache.stored_etag(url))
-            .flatten();
-
-        match self.fetch(url, etag.as_deref()).await {
+    /// Network leg of [`Self::get_json_cached`]: fetch (conditionally),
+    /// commit the result to the cache, or fall back to a stale copy.
+    async fn fetch_and_cache<T: serde::de::DeserializeOwned>(
+        &self,
+        url: &str,
+        etag: Option<&str>,
+    ) -> Result<T> {
+        match self.fetch(url, etag).await {
             Ok(Fetch::Body(bytes, new_etag)) => {
                 self.cache.store(url, &bytes, new_etag.as_deref())?;
                 Ok(serde_json::from_slice(&bytes)?)
@@ -199,9 +207,8 @@ impl HttpClient {
                 if self.no_cache {
                     return Err(err);
                 }
-                match self.cache.get_stale(url) {
-                    Some(bytes) => {
-                        let age = self.cache.age_secs(url).unwrap_or_default();
+                match self.cache.stale_with_age(url) {
+                    Some((bytes, age)) => {
                         tracing::warn!(url, "refresh failed ({err}); serving stale copy");
                         ui::warn(format!(
                             "couldn't refresh - serving {} cached copy ({err})",
@@ -382,6 +389,27 @@ mod tests {
 
             let value: serde_json::Value = client.get_json_cached(&url, 0).await.unwrap();
             assert_eq!(value, serde_json::json!("stale"));
+        }
+
+        #[tokio::test]
+        async fn plain_403_is_not_reported_as_rate_limit() {
+            let (server, url, dir) = server_for().await;
+            // no_cache so the error propagates instead of falling back to stale
+            let client = HttpClient::new_with_cache(true, dir.path().to_path_buf()).unwrap();
+
+            let _guard = Mock::given(method("GET"))
+                .and(path(URL_PATH))
+                .respond_with(ResponseTemplate::new(403)) // no ratelimit headers
+                .expect(1) // must not be retried as transient either
+                .mount_as_scoped(&server)
+                .await;
+
+            let result: Result<serde_json::Value> = client.get_json_cached(&url, 0).await;
+            assert!(
+                !matches!(result, Err(Error::RateLimited { .. })),
+                "plain 403 misreported as rate limit: {result:?}"
+            );
+            assert!(result.is_err());
         }
 
         #[tokio::test]
