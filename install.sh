@@ -123,4 +123,4 @@ info "installed $BIN $TARGET -> $INSTALL_DIR/$BIN"
 info "next steps:"
 info "  - spicetify must be installed (https://spicetify.app)"
 info "  - export GITHUB_TOKEN=... to avoid API rate limits"
-command -v "$BIN" >/dev/null 2>&1 && "$BIN" --version || true
+"$INSTALL_DIR/$BIN" --version || true
