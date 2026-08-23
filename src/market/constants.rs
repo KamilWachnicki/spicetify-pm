@@ -1,6 +1,12 @@
 /// Max GitHub API items per page.
 pub const ITEMS_PER_REQUEST: u32 = 100;
 
+/// Cache lifetimes mirroring the README's documented tiers.
+pub const SEARCH_TTL_SECS: u64 = 10 * 60;
+pub const MANIFEST_TTL_SECS: u64 = 24 * 60 * 60;
+pub const SNIPPETS_TTL_SECS: u64 = 60 * 60;
+pub const BLACKLIST_TTL_SECS: u64 = 60 * 60;
+
 pub const SNIPPETS_URL: &str =
     "https://raw.githubusercontent.com/spicetify/marketplace/main/resources/snippets.json";
 

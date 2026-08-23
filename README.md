@@ -85,7 +85,7 @@ spice-pm list [all|themes|extensions|snippets] [--json]
 spice-pm lock [--out <path>]
 spice-pm snippets search [query]|show|add|remove
 spice-pm theme set [name] [scheme] | theme scheme <scheme> | theme current
-spice-pm cache path|clear
+spice-pm cache path|size|clear
 spice-pm self-update [--check] [--yes]
 ```
 
@@ -222,11 +222,16 @@ spice-pm theme current --json
 
 ### cache
 
-Responses are cached on disk with per-type TTLs (search 10 min, manifests 24 h,
-blacklist/snippets 1 h).
+Responses are cached on disk with per-type TTLs (search 10 min, manifests and
+repo metadata 24 h, blacklist/snippets 1 h). Expiring entries are revalidated
+with their ETag - `304` answers cost no GitHub rate-limit quota. When a
+refresh fails (rate limit, offline), a stale cached copy is served with a
+warning instead of failing; `--no-cache` disables all of that. Entries older
+than 30 days are pruned automatically.
 
 ```sh
 spice-pm cache path                 # print the cache directory
+spice-pm cache size                 # entry count + total size
 spice-pm cache clear
 ```
 

@@ -18,8 +18,6 @@ use crate::ledger::LedgerEntry;
 use crate::market::blacklist::{Blacklist, fetch_blacklist};
 use crate::market::constants::RepoTopic;
 
-const BLACKLIST_TTL_SECS: u64 = 60 * 60;
-
 /// Save the ledger and keep the lockfile in sync. Every mutating command
 /// persists through here so `spicepm.lock` never goes stale.
 pub(crate) fn persist_ledger(led: &mut crate::ledger::Ledger) -> Result<()> {
@@ -82,7 +80,7 @@ pub fn active_theme_scheme(entry: &LedgerEntry) -> Option<String> {
 
 /// Fetch and build the blacklist (shared by search/info/install).
 pub async fn load_blacklist(http: &HttpClient) -> Result<Blacklist> {
-    fetch_blacklist(http, BLACKLIST_TTL_SECS).await
+    fetch_blacklist(http, crate::market::constants::BLACKLIST_TTL_SECS).await
 }
 
 pub fn topic_from_type(kind: Option<ItemTypeArg>) -> Option<RepoTopic> {

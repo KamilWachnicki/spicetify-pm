@@ -104,6 +104,7 @@ async fn run(args: cli::Cli) -> errors::Result<()> {
 
         Commands::Cache(cmd) => match cmd {
             CacheCommands::Path => commands::cache_cmd::run_path(),
+            CacheCommands::Size => commands::cache_cmd::run_size(),
             CacheCommands::Clear => commands::cache_cmd::run_clear(),
         },
     }

@@ -191,6 +191,8 @@ pub enum ThemeCommands {
 pub enum CacheCommands {
     /// Print the cache directory
     Path,
+    /// Show entry count and total size
+    Size,
     /// Delete all cached responses
     Clear,
 }

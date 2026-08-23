@@ -1,13 +1,13 @@
 //! Building installable items from repo manifests.
 //! Ports of `fetchExtensionManifest` / `fetchThemeManifest`.
 
+use super::constants::MANIFEST_TTL_SECS;
 use super::types::{Author, CardItem, ItemKind, Manifest, Repo};
 use super::urls::resolve_or_raw;
 use crate::errors::Result;
 use crate::http::HttpClient;
 use futures::StreamExt;
 
-const MANIFEST_TTL_SECS: u64 = 24 * 60 * 60;
 const MAX_CONCURRENT_MANIFESTS: usize = 10;
 
 /// Fetch and validate `manifest.json` for a repo (single object or array),

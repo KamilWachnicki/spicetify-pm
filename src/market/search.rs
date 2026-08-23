@@ -1,7 +1,9 @@
 //! Topic search, ported from `getTaggedRepos`.
 
 use super::blacklist::Blacklist;
-use super::constants::{RepoTopic, search_repos_url};
+use super::constants::{
+    MANIFEST_TTL_SECS, SEARCH_TTL_SECS, RepoTopic, search_repos_url,
+};
 use super::types::{Repo, SearchResponse};
 use crate::errors::Result;
 use crate::http::HttpClient;
@@ -32,7 +34,7 @@ pub async fn get_tagged_repos(
     opts: SearchOptions,
 ) -> Result<SearchResult> {
     let url = search_repos_url(opts.topic.as_str(), opts.page.max(1));
-    let response: SearchResponse = http.get_json(&url).await?;
+    let response: SearchResponse = http.get_json_cached(&url, SEARCH_TTL_SECS).await?;
 
     let mut items = Vec::new();
     let mut blacklisted_filtered = 0usize;
@@ -62,5 +64,5 @@ pub async fn get_tagged_repos(
 /// (used by `info` / direct installs).
 pub async fn get_repo(http: &HttpClient, user: &str, repo: &str) -> Result<Repo> {
     let url = format!("https://api.github.com/repos/{user}/{repo}");
-    http.get_json(&url).await
+    http.get_json_cached(&url, MANIFEST_TTL_SECS).await
 }
