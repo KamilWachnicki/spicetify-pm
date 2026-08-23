@@ -37,9 +37,20 @@ pub fn run_set(name: Option<String>, scheme: Option<&str>) -> Result<()> {
         "color_scheme",
         chosen.as_deref().unwrap_or_default(),
     );
+    // activating a theme only works when spicetify actually uses its files
+    let mut notices: Vec<&'static str> = Vec::new();
+    if theme_root.join("user.css").is_file() && cfg.enable_flag("inject_css") {
+        notices.push("set inject_css=1 so the theme styles apply");
+    }
+    if theme_root.join("color.ini").is_file() && cfg.enable_flag("replace_colors") {
+        notices.push("set replace_colors=1 so colour schemes apply");
+    }
     cfg.save()?;
 
     ui::success(format!("active theme: {}", ui::style_title(&folder)));
+    for notice in notices {
+        ui::info(notice);
+    }
     if let Some(s) = chosen {
         println!("         colour scheme: {s}");
     }

@@ -426,12 +426,18 @@ async fn install_theme(http: &HttpClient, item: &CardItem, yes: bool) -> Result<
         Some(s) => cfg.set_string("Setting", "color_scheme", s),
         None => cfg.set_string("Setting", "color_scheme", ""),
     }
-    // a theme script on disk is useless unless spicetify injects it
-    let mut enabled_inject = false;
-    if ships_script && cfg.get_string("Setting", "inject_theme_js").as_deref() != Some("1") {
-        cfg.set_string("Setting", "inject_theme_js", "1");
-        enabled_inject = true;
-    }
+    // the written files are useless unless spicetify actually uses them
+    let enabled_css = cfg.enable_flag("inject_css");
+    let enabled_colors = if schemes.is_some() {
+        cfg.enable_flag("replace_colors")
+    } else {
+        false
+    };
+    let enabled_inject = if ships_script {
+        cfg.enable_flag("inject_theme_js")
+    } else {
+        false
+    };
 
     let mut led = Ledger::load()?;
     let rel_files: Vec<String> = files
@@ -474,6 +480,12 @@ async fn install_theme(http: &HttpClient, item: &CardItem, yes: bool) -> Result<
         println!("         colour scheme: {s}");
     } else {
         ui::info("no colour schemes found in this theme");
+    }
+    if enabled_css {
+        ui::info("set inject_css=1 so the theme styles apply");
+    }
+    if enabled_colors {
+        ui::info("set replace_colors=1 so colour schemes apply");
     }
     if enabled_inject {
         ui::info("set inject_theme_js=1 so the theme script runs");

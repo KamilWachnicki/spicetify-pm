@@ -38,6 +38,17 @@ impl SpicetifyConfig {
         self.ini.with_section(Some(section)).set(key, value);
     }
 
+    /// Turn a `[Setting]` boolean flag on when it isn't already; returns
+    /// true when the config changed. Themes need `inject_css` /
+    /// `replace_colors` / `inject_theme_js` set to 1 to have any effect.
+    pub fn enable_flag(&mut self, key: &str) -> bool {
+        if self.get_string(SETTING, key).as_deref() == Some("1") {
+            return false;
+        }
+        self.set_string(SETTING, key, "1");
+        true
+    }
+
     pub fn current_theme(&self) -> Option<String> {
         self.get_string(SETTING, "current_theme")
     }
@@ -166,6 +177,51 @@ mod tests {
         assert!(!cfg.list_remove("custom_apps", "releases"));
         assert!(cfg.list_remove("custom_apps", "reddit"));
         assert_eq!(cfg.custom_apps(), ["new-releases"]);
+    }
+
+    #[test]
+    fn enable_flag_sets_missing_and_reports_change() {
+        let (_dir, path) = load_from_str(&sample_config());
+        let mut cfg = SpicetifyConfig::load(&path).unwrap();
+        // absent from the sample config
+        assert!(cfg.enable_flag("replace_colors"));
+        assert!(cfg.enable_flag("inject_theme_js"));
+        cfg.save().unwrap();
+
+        let reloaded = SpicetifyConfig::load(&path).unwrap();
+        assert_eq!(
+            reloaded.get_string("Setting", "replace_colors").as_deref(),
+            Some("1")
+        );
+        assert_eq!(
+            reloaded.get_string("Setting", "inject_theme_js").as_deref(),
+            Some("1")
+        );
+        // untouched values survive
+        assert_eq!(
+            reloaded.current_theme().as_deref(),
+            Some("SpicetifyDefault")
+        );
+    }
+
+    #[test]
+    fn enable_flag_is_a_noop_when_already_on() {
+        // sample config ships `inject_css = 1`
+        let (_dir, path) = load_from_str(&sample_config());
+        let mut cfg = SpicetifyConfig::load(&path).unwrap();
+        assert!(!cfg.enable_flag("inject_css"));
+        assert_eq!(
+            cfg.get_string("Setting", "inject_css").as_deref(),
+            Some("1")
+        );
+
+        // a differently-valued flag (e.g. 0) is flipped to 1
+        cfg.set_string(SETTING, "inject_css", "0");
+        assert!(cfg.enable_flag("inject_css"));
+        assert_eq!(
+            cfg.get_string("Setting", "inject_css").as_deref(),
+            Some("1")
+        );
     }
 
     #[test]

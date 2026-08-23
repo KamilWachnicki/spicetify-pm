@@ -308,6 +308,17 @@ mod tests {
     }
 
     #[test]
+    fn every_bump_kind_is_offered() {
+        // regression: no release kind may ever be treated as up to date
+        assert_eq!(verdict_for("0.3.0", "v0.3.1"), Verdict::UpdateAvailable); // patch
+        assert_eq!(verdict_for("0.2.9", "v0.3.0"), Verdict::UpdateAvailable); // minor
+        assert_eq!(verdict_for("0.9.9", "v1.0.0"), Verdict::UpdateAvailable); // major
+        // multi-digit components compare numerically, not lexically
+        assert_eq!(verdict_for("0.3.19", "v0.3.20"), Verdict::UpdateAvailable);
+        assert_eq!(verdict_for("0.9.0", "v0.10.0"), Verdict::UpdateAvailable);
+    }
+
+    #[test]
     fn installer_guard_accepts_both_platforms() {
         assert!(looks_like_installer(
             b"#!/usr/bin/env bash\nset -euo pipefail"
