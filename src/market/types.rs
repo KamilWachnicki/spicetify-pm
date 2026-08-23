@@ -51,6 +51,10 @@ pub struct Manifest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub schemes: Option<String>,
     pub include: Vec<String>,
+    /// spice-pm exclusive: URL or repo-relative path of a directory whose
+    /// whole content is downloaded alongside the theme (fonts, images, ...).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assets: Option<String>,
     #[serde(flatten)]
     pub extra: BTreeMap<String, serde_json::Value>,
 }

@@ -286,6 +286,10 @@ fn print_install_summary(item: &crate::market::types::CardItem) {
         authors
     ));
     println!("         from {} ({})", item.github_url(), item.branch);
+    // spice-pm exclusive: the whole directory comes along
+    if let Some(spec) = &item.manifest.assets {
+        println!("         plus its `assets` directory ({spec})");
+    }
     match item.kind {
         crate::market::types::ItemKind::Extension => {
             let basename = crate::commands::install::file_name_from(

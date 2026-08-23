@@ -266,6 +266,51 @@ spice-pm self-update --check        # compare only; exit 1 when outdated
   downloads overwrite atomically; two items can't claim the same extension
   filename.
 
+## spice-pm exclusives
+
+### `assets` directory download (themes)
+
+The official manifest schema has no `assets` field; spice-pm accepts one on
+themes and downloads the **whole directory** it points to. Files land inside
+`Themes/<folder>/` keeping the assets directory's own name - so a theme whose
+repo layout is `catppuccin/user.css` + `"assets": "catppuccin/assets"` gets
+`Themes/<folder>/user.css` next to `Themes/<folder>/assets/...`. Relative
+references like `url("assets/fonts/Inter.ttf")` in the theme's CSS or scripts
+resolve against the theme folder, exactly how spicetify expects theme assets.
+
+```json
+{
+    "name": "My Theme",
+    "description": "...",
+    "usercss": "my-theme/user.css",
+    "include": ["my-theme/theme.script.js"],
+    "assets": "assets"
+}
+```
+
+The value may be:
+
+- a repo-relative path (`"assets"`) - resolved against the item's own
+  repo and branch, or
+- an absolute GitHub directory URL
+  (`"https://github.com/<user>/<repo>/tree/<branch>/<dir>"`).
+
+Rules: subdirectories are included recursively; more than 200 files or more
+than 25 MiB in total are refused; assets named `user.css`, `color.ini` or
+`theme.js` are rejected (the installer owns those); **only inert file types
+are allowed** - images (`png`, `jpg`, `jpeg`, `gif`, `webp`, `svg`, `ico`,
+`bmp`, `avif`), fonts (`ttf`, `otf`, `woff`, `woff2`, `eot`), styles
+(`css`, `scss`, `sass`, `less`) and text/data (`json`, `txt`, `md`, `ini`,
+`xml`, `yaml`, `yml`, `toml`, `csv`) - so a hostile manifest can never make
+spice-pm place scripts or binaries on your disk; the whole listing is
+validated before anything is downloaded, and any failure aborts the install
+(no half-installed themes). Downloaded files land in the ledger, so `remove`
+cleans them up and `update` refreshes them. Extensions ignore the field.
+
+Installing (or activating via `theme set`) a theme with assets also sets
+`overwrite_assets = 1`, alongside the usual `inject_css` / `replace_colors` /
+`inject_theme_js` handling.
+
 ## Marketplace compliance
 
 `spice-pm` ports the marketplace's remote logic field by field:
@@ -288,7 +333,7 @@ spice-pm self-update --check        # compare only; exit 1 when outdated
 ## Development
 
 ```sh
-cargo test                    # 66 unit tests
+cargo test                    # 98 unit tests
 cargo clippy --all-targets    # zero warnings (pedantic lints, unsafe forbidden)
 cargo fmt --check
 cargo build --release
@@ -311,4 +356,4 @@ Roadmap: custom apps support (`topic:spicetify-apps`), shell completions, cargo-
 
 ## License
 
-LGPL 2.1
+LGPL v2.1

@@ -1,3 +1,4 @@
+pub mod assets;
 pub mod blacklist;
 pub mod constants;
 pub mod items;

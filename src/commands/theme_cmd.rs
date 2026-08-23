@@ -45,6 +45,9 @@ pub fn run_set(name: Option<String>, scheme: Option<&str>) -> Result<()> {
     if theme_root.join("color.ini").is_file() && cfg.enable_flag("replace_colors") {
         notices.push("set replace_colors=1 so colour schemes apply");
     }
+    if theme_root.join("assets").is_dir() && cfg.enable_flag("overwrite_assets") {
+        notices.push("set overwrite_assets=1 so spicetify copies the theme's assets");
+    }
     cfg.save()?;
 
     ui::success(format!("active theme: {}", ui::style_title(&folder)));

@@ -334,6 +334,25 @@ async fn install_theme(http: &HttpClient, item: &CardItem, yes: bool) -> Result<
         let rel = include_dest_rel(inc)?;
         include_files.push((rel, url.clone(), bytes));
     }
+
+    // spice-pm exclusive: a manifest `assets` directory is fetched whole,
+    // keeping its repo-relative layout under the theme folder
+    let asset_files = match &item.manifest.assets {
+        Some(spec) => {
+            let loc =
+                crate::market::urls::resolve_assets_dir(spec, &item.user, &item.repo, &item.branch)
+                    .map_err(Error::other)?;
+            crate::market::assets::fetch_dir(http, &loc, spinner.as_ref()).await?
+        }
+        None => Vec::new(),
+    };
+    let assets_from = item.manifest.assets.as_deref().map(|spec| {
+        crate::market::urls::resolve_assets_dir(spec, &item.user, &item.repo, &item.branch)
+            .map_or_else(
+                |_| spec.to_owned(),
+                |loc| crate::market::urls::github_tree_url(&loc),
+            )
+    });
     if let Some(pb) = spinner {
         pb.finish_and_clear();
     }
@@ -367,6 +386,11 @@ async fn install_theme(http: &HttpClient, item: &CardItem, yes: bool) -> Result<
     for (rel_inc, _, bytes) in &include_files {
         let safe = safe_join(&theme_root, rel_inc)?;
         files.push((safe, bytes.clone()));
+    }
+    for asset in &asset_files {
+        // already vetted in select_blobs; safe_join re-checks on write
+        let safe = safe_join(&theme_root, &asset.rel)?;
+        files.push((safe, asset.bytes.clone()));
     }
     // marketplace themes can ship scripts via include[]; spicetify only
     // auto-injects theme.js, so bridge the first JS include to that name
@@ -433,6 +457,11 @@ async fn install_theme(http: &HttpClient, item: &CardItem, yes: bool) -> Result<
     } else {
         false
     };
+    let enabled_assets = if asset_files.is_empty() {
+        false
+    } else {
+        cfg.enable_flag("overwrite_assets")
+    };
     let enabled_inject = if ships_script {
         cfg.enable_flag("inject_theme_js")
     } else {
@@ -463,6 +492,9 @@ async fn install_theme(http: &HttpClient, item: &CardItem, yes: bool) -> Result<
                 urls.push(u.clone());
             }
             urls.extend(include_files.iter().map(|(_, u, _)| u.clone()));
+            if let Some(from) = &assets_from {
+                urls.push(from.clone());
+            }
             urls
         },
         hashes,
@@ -481,11 +513,20 @@ async fn install_theme(http: &HttpClient, item: &CardItem, yes: bool) -> Result<
     } else {
         ui::info("no colour schemes found in this theme");
     }
+    if let Some(from) = &assets_from {
+        println!(
+            "         plus {} asset file(s) from {from}",
+            asset_files.len()
+        );
+    }
     if enabled_css {
         ui::info("set inject_css=1 so the theme styles apply");
     }
     if enabled_colors {
         ui::info("set replace_colors=1 so colour schemes apply");
+    }
+    if enabled_assets {
+        ui::info("set overwrite_assets=1 so spicetify copies the theme's assets");
     }
     if enabled_inject {
         ui::info("set inject_theme_js=1 so the theme script runs");

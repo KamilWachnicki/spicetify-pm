@@ -33,7 +33,7 @@ impl HttpClient {
     }
 
     #[cfg(test)]
-    fn new_with_cache(no_cache: bool, dir: std::path::PathBuf) -> Result<Self> {
+    pub(crate) fn new_with_cache(no_cache: bool, dir: std::path::PathBuf) -> Result<Self> {
         Ok(Self {
             inner: Self::build_client()?,
             token: github_token(),

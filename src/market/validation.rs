@@ -15,10 +15,11 @@
 //! | readme      | nullish string, defaults "" -> rejected              |
 //! | tags        | string or string[] -> `.catch([])`                   |
 //! | include     | string[] -> `.catch([])`                             |
+//! | assets      | spice-pm exclusive: optional trimmed min-1 string    |
 //! | *           | passthrough (unknown keys preserved)                 |
 
 /// Keys consumed by the schema; everything else lands in `extra` passthrough.
-const KNOWN_KEYS: [&str; 11] = [
+const KNOWN_KEYS: [&str; 12] = [
     "name",
     "description",
     "main",
@@ -30,6 +31,7 @@ const KNOWN_KEYS: [&str; 11] = [
     "readme",
     "tags",
     "include",
+    "assets",
 ];
 
 use super::types::{Author, Manifest};
@@ -55,6 +57,7 @@ pub fn parse_manifest(value: &Value) -> Result<Manifest, String> {
     let authors = parse_authors_catch(obj.get("authors"));
     let tags = parse_tags_catch(obj.get("tags"));
     let include = parse_include_catch(obj.get("include"));
+    let assets = optional_trimmed_min1(obj, "assets")?;
 
     let extra: BTreeMap<String, Value> = obj
         .iter()
@@ -73,6 +76,7 @@ pub fn parse_manifest(value: &Value) -> Result<Manifest, String> {
         branch,
         schemes,
         include,
+        assets,
         extra,
     })
 }
@@ -324,6 +328,41 @@ mod tests {
         assert_eq!(m.preview, "");
         let m = parse_manifest(&json!({ "name": "n", "description": "d", "preview": 5 }));
         assert!(m.is_err());
+    }
+
+    #[test]
+    fn assets_is_spice_pm_exclusive_optional_string() {
+        // accepted and typed, no longer passthrough
+        let m = parse_manifest(&json!({
+            "name": "n", "description": "d", "usercss": "a.css",
+            "assets": "assets"
+        }))
+        .unwrap();
+        assert_eq!(m.assets.as_deref(), Some("assets"));
+        assert!(!m.extra.contains_key("assets"), "must be a known key now");
+
+        let m = parse_manifest(&json!({
+            "name": "n", "description": "d",
+            "assets": "https://github.com/u/r/tree/main/assets"
+        }))
+        .unwrap();
+        assert_eq!(
+            m.assets.as_deref(),
+            Some("https://github.com/u/r/tree/main/assets")
+        );
+
+        // absent -> None
+        let m = parse_manifest(&json!({ "name": "n", "description": "d" })).unwrap();
+        assert!(m.assets.is_none());
+
+        // wrong type / empty -> manifest rejected (same strictness as main)
+        assert!(parse_manifest(&json!({ "name": "n", "description": "d", "assets": 5 })).is_err());
+        assert!(
+            parse_manifest(&json!({ "name": "n", "description": "d", "assets": null })).is_err()
+        );
+        assert!(
+            parse_manifest(&json!({ "name": "n", "description": "d", "assets": " " })).is_err()
+        );
     }
 
     #[test]
