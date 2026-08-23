@@ -150,7 +150,10 @@ impl Cache {
     }
 
     fn write_meta(&self, meta: &Meta) -> Result<()> {
-        atomic_write(&self.meta_path(&meta.url), serde_json::to_vec(meta)?.as_slice())
+        atomic_write(
+            &self.meta_path(&meta.url),
+            serde_json::to_vec(meta)?.as_slice(),
+        )
     }
 
     fn meta_path(&self, url: &str) -> PathBuf {
@@ -199,10 +202,7 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
         .ok_or_else(|| Error::other(format!("no parent dir for {}", path.display())))?;
     std::fs::create_dir_all(parent)?;
     let seq = TMP_SEQ.fetch_add(1, Ordering::Relaxed);
-    let mut tmp_name = path
-        .file_name()
-        .unwrap_or_default()
-        .to_os_string();
+    let mut tmp_name = path.file_name().unwrap_or_default().to_os_string();
     tmp_name.push(format!(".spicepm-tmp-{}-{seq}", std::process::id()));
     let tmp = parent.join(tmp_name);
     std::fs::write(&tmp, bytes)?;
@@ -250,7 +250,9 @@ mod tests {
     #[test]
     fn roundtrip_and_expiry() {
         let (cache, _dir) = test_cache();
-        cache.store("https://example.com/a", b"hello", None).unwrap();
+        cache
+            .store("https://example.com/a", b"hello", None)
+            .unwrap();
         assert_eq!(
             cache.get_fresh("https://example.com/a", 60).unwrap(),
             b"hello"
@@ -258,10 +260,7 @@ mod tests {
         assert!(cache.get_fresh("https://example.com/b", 60).is_none());
         // expired for get_fresh, still available as stale
         assert!(cache.get_fresh("https://example.com/a", 0).is_none());
-        assert_eq!(
-            cache.get_stale("https://example.com/a").unwrap(),
-            b"hello"
-        );
+        assert_eq!(cache.get_stale("https://example.com/a").unwrap(), b"hello");
     }
 
     #[test]
@@ -269,11 +268,7 @@ mod tests {
         let (cache, dir) = test_cache();
         cache.store("https://example.com/a", b"body", None).unwrap();
         let key = hash_key("https://example.com/a");
-        std::fs::write(
-            dir.path().join(format!("{key}.meta.json")),
-            b"{ not json",
-        )
-        .unwrap();
+        std::fs::write(dir.path().join(format!("{key}.meta.json")), b"{ not json").unwrap();
         assert!(cache.get_fresh("https://example.com/a", 60).is_none());
         assert!(cache.get_stale("https://example.com/a").is_none());
     }
@@ -282,11 +277,12 @@ mod tests {
     fn meta_url_mismatch_is_ignored() {
         // simulates a hash-key collision between two URLs
         let (cache, dir) = test_cache();
-        cache.store("https://example.com/real", b"body", None).unwrap();
+        cache
+            .store("https://example.com/real", b"body", None)
+            .unwrap();
         let key = hash_key("https://example.com/real");
         let meta_path = dir.path().join(format!("{key}.meta.json"));
-        let mut meta: Meta =
-            serde_json::from_slice(&std::fs::read(&meta_path).unwrap()).unwrap();
+        let mut meta: Meta = serde_json::from_slice(&std::fs::read(&meta_path).unwrap()).unwrap();
         meta.url = "https://example.com/other".to_owned();
         std::fs::write(&meta_path, serde_json::to_vec(&meta).unwrap()).unwrap();
         assert!(cache.get_fresh("https://example.com/real", 60).is_none());
@@ -300,13 +296,15 @@ mod tests {
         cache
             .store("https://example.com/e", b"v1", Some("\"abc\""))
             .unwrap();
-        assert_eq!(cache.stored_etag("https://example.com/e").unwrap(), "\"abc\"");
+        assert_eq!(
+            cache.stored_etag("https://example.com/e").unwrap(),
+            "\"abc\""
+        );
         // touch restarts the clock: ttl=0 means expired, so fresh-after-touch
         // is observable by bumping fetched_at far into the past first
         let key = hash_key("https://example.com/e");
         let meta_path = dir.path().join(format!("{key}.meta.json"));
-        let mut meta: Meta =
-            serde_json::from_slice(&std::fs::read(&meta_path).unwrap()).unwrap();
+        let mut meta: Meta = serde_json::from_slice(&std::fs::read(&meta_path).unwrap()).unwrap();
         meta.fetched_at = now_secs().saturating_sub(10_000);
         std::fs::write(&meta_path, serde_json::to_vec(&meta).unwrap()).unwrap();
         assert!(cache.get_fresh("https://example.com/e", 60).is_none());
@@ -319,7 +317,9 @@ mod tests {
     fn stats_count_bodies_only() {
         let (cache, _dir) = test_cache();
         assert_eq!(cache.stats(), (0, 0));
-        cache.store("https://example.com/s1", b"12345", None).unwrap();
+        cache
+            .store("https://example.com/s1", b"12345", None)
+            .unwrap();
         cache.store("https://example.com/s2", b"12", None).unwrap();
         assert_eq!(cache.stats(), (2, 7));
     }
@@ -327,16 +327,19 @@ mod tests {
     #[test]
     fn prune_drops_old_and_corrupt_entries() {
         let (cache, dir) = test_cache();
-        cache.store("https://example.com/old", b"data", None).unwrap();
+        cache
+            .store("https://example.com/old", b"data", None)
+            .unwrap();
         let key = hash_key("https://example.com/old");
         let meta_path = dir.path().join(format!("{key}.meta.json"));
-        let mut meta: Meta =
-            serde_json::from_slice(&std::fs::read(&meta_path).unwrap()).unwrap();
+        let mut meta: Meta = serde_json::from_slice(&std::fs::read(&meta_path).unwrap()).unwrap();
         meta.fetched_at = now_secs().saturating_sub(PRUNE_AFTER_SECS + 1);
         std::fs::write(&meta_path, serde_json::to_vec(&meta).unwrap()).unwrap();
 
         // a corrupt entry
-        cache.store("https://example.com/bad", b"data", None).unwrap();
+        cache
+            .store("https://example.com/bad", b"data", None)
+            .unwrap();
         let bad_key = hash_key("https://example.com/bad");
         std::fs::write(dir.path().join(format!("{bad_key}.meta.json")), b"junk").unwrap();
 
@@ -356,6 +359,9 @@ mod tests {
         atomic_write(&p, b"two").unwrap();
         assert_eq!(std::fs::read(&p).unwrap(), b"two");
         // no leftover temp files
-        assert_eq!(std::fs::read_dir(dir.path().join("sub")).unwrap().count(), 1);
+        assert_eq!(
+            std::fs::read_dir(dir.path().join("sub")).unwrap().count(),
+            1
+        );
     }
 }

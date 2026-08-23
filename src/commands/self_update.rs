@@ -24,7 +24,11 @@ enum Verdict {
 }
 
 pub async fn run(http: &HttpClient, check: bool, yes: bool) -> Result<()> {
-    if !cfg!(any(target_os = "linux", target_os = "macos", target_os = "windows")) {
+    if !cfg!(any(
+        target_os = "linux",
+        target_os = "macos",
+        target_os = "windows"
+    )) {
         return Err(Error::other(
             "self-update supports linux, macOS and Windows only; reinstall manually",
         ));
@@ -40,7 +44,9 @@ pub async fn run(http: &HttpClient, check: bool, yes: bool) -> Result<()> {
 
     match verdict_for(current, &latest) {
         Verdict::UpToDate => {
-            ui::success(format!("spice-pm {current} is up to date (latest release {latest})"));
+            ui::success(format!(
+                "spice-pm {current} is up to date (latest release {latest})"
+            ));
             return Ok(());
         }
         // CI-friendly: an existing update is signalled through the exit code
@@ -52,12 +58,11 @@ pub async fn run(http: &HttpClient, check: bool, yes: bool) -> Result<()> {
     }
 
     if !yes {
-        let confirmed =
-            dialoguer::Confirm::with_theme(&dialoguer::theme::ColorfulTheme::default())
-                .with_prompt(format!("update spice-pm {current} -> {latest}?"))
-                .default(false)
-                .interact()
-                .unwrap_or(false);
+        let confirmed = dialoguer::Confirm::with_theme(&dialoguer::theme::ColorfulTheme::default())
+            .with_prompt(format!("update spice-pm {current} -> {latest}?"))
+            .default(false)
+            .interact()
+            .unwrap_or(false);
         if !confirmed {
             ui::info("aborted - staying on the current version");
             return Ok(());
@@ -102,7 +107,9 @@ async fn update_in_place(http: &HttpClient, tag: &str) -> Result<()> {
         Ok(()) => {
             let _ = std::fs::remove_file(&staged);
             let _ = std::fs::remove_file(&tmp);
-            ui::success(format!("updated spice-pm -> {tag}; the new version runs on the next invocation"));
+            ui::success(format!(
+                "updated spice-pm -> {tag}; the new version runs on the next invocation"
+            ));
             Ok(())
         }
         Err(err) => {
@@ -143,11 +150,19 @@ fn run_installer(script: &Path, tag: &str, dir: &Path) -> Result<()> {
     let mut command = if cfg!(windows) {
         let mut c = Command::new("powershell");
         c.args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"]);
-        c.arg(script).arg("-Version").arg(tag).arg("-InstallDir").arg(dir);
+        c.arg(script)
+            .arg("-Version")
+            .arg(tag)
+            .arg("-InstallDir")
+            .arg(dir);
         c
     } else {
         let mut c = Command::new("bash");
-        c.arg(script).arg("--version").arg(tag).arg("--dir").arg(dir);
+        c.arg(script)
+            .arg("--version")
+            .arg(tag)
+            .arg("--dir")
+            .arg(dir);
         c
     };
 
@@ -228,6 +243,9 @@ mod tests {
     fn script_urls_are_pinned_to_tag() {
         let url = install_script_raw_url("v1.2.3");
         assert!(url.contains("/v1.2.3/install."), "{url}");
-        assert!(url.starts_with("https://raw.githubusercontent.com/"), "{url}");
+        assert!(
+            url.starts_with("https://raw.githubusercontent.com/"),
+            "{url}"
+        );
     }
 }

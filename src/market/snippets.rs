@@ -8,8 +8,9 @@ use crate::http::HttpClient;
 /// Fetch all snippets and resolve relative previews to absolute URLs
 /// (`https://raw.githubusercontent.com/spicetify/marketplace/main/{preview}`).
 pub async fn fetch_snippets(http: &HttpClient) -> Result<Vec<Snippet>> {
-    let mut snippets: Vec<Snippet> =
-        http.get_json_cached(SNIPPETS_URL, SNIPPETS_TTL_SECS).await?;
+    let mut snippets: Vec<Snippet> = http
+        .get_json_cached(SNIPPETS_URL, SNIPPETS_TTL_SECS)
+        .await?;
 
     for snip in &mut snippets {
         if let Some(preview) = snip.preview.take() {

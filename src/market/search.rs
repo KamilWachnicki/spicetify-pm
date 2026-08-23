@@ -1,9 +1,7 @@
 //! Topic search, ported from `getTaggedRepos`.
 
 use super::blacklist::Blacklist;
-use super::constants::{
-    MANIFEST_TTL_SECS, SEARCH_TTL_SECS, RepoTopic, search_repos_url,
-};
+use super::constants::{MANIFEST_TTL_SECS, RepoTopic, SEARCH_TTL_SECS, search_repos_url};
 use super::types::{Repo, SearchResponse};
 use crate::errors::Result;
 use crate::http::HttpClient;

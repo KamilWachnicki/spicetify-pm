@@ -4,11 +4,11 @@ pub mod info;
 pub mod install;
 pub mod list;
 pub mod lock_cmd;
+pub mod remove;
 pub mod search;
 pub mod self_update;
 pub mod snippets;
 pub mod theme_cmd;
-pub mod remove;
 pub mod update;
 
 use crate::cli::ItemTypeArg;

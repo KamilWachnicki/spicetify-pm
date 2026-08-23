@@ -267,10 +267,7 @@ pub async fn run(
                         }
                         let mut led = crate::ledger::Ledger::load()?;
                         crate::commands::remove::remove_entry(&mut led, &item.id())?;
-                        ui::success(format!(
-                            "removed theme {}",
-                            ui::style_title(&item.title)
-                        ));
+                        ui::success(format!("removed theme {}", ui::style_title(&item.title)));
                     }
 
                     // not installed: themes are heavy (folder rewrite +

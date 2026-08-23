@@ -188,9 +188,10 @@ impl HttpClient {
             Ok(Fetch::NotModified) => {
                 self.cache.touch(url)?;
                 tracing::debug!(url, "304 not modified; cache refreshed for free");
-                let bytes = self.cache.get_stale(url).ok_or_else(|| {
-                    Error::other("server answered 304 but no cached body exists")
-                })?;
+                let bytes = self
+                    .cache
+                    .get_stale(url)
+                    .ok_or_else(|| Error::other("server answered 304 but no cached body exists"))?;
                 Ok(serde_json::from_slice(&bytes)?)
             }
             Err(err) => {
@@ -237,7 +238,8 @@ fn human_age(secs: u64) -> String {
     }
 }
 
-fn github_token() -> Option<String> {    for key in ["SPICEPM_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"] {
+fn github_token() -> Option<String> {
+    for key in ["SPICEPM_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"] {
         if let Ok(value) = std::env::var(key)
             && !value.trim().is_empty()
         {

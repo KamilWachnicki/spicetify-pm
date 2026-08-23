@@ -98,9 +98,7 @@ async fn run(args: cli::Cli) -> errors::Result<()> {
             ThemeCommands::Current { json } => commands::theme_cmd::run_current(json),
         },
 
-        Commands::SelfUpdate { check, yes } => {
-            commands::self_update::run(&http, check, yes).await
-        }
+        Commands::SelfUpdate { check, yes } => commands::self_update::run(&http, check, yes).await,
 
         Commands::Cache(cmd) => match cmd {
             CacheCommands::Path => commands::cache_cmd::run_path(),
