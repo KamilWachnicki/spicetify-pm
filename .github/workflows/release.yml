@@ -50,9 +50,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.98.0
         with:
           targets: ${{ matrix.target }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.target }}
       - uses: taiki-e/install-action@v2
         if: matrix.cross
         with:
