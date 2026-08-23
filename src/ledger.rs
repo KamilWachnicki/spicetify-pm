@@ -1,16 +1,16 @@
-//! Ledger of everything spicepm installed, stored at
+//! Ledger of everything spice-pm installed, stored at
 //! `<SPICETIFY_CONFIG>/spicepm/ledger.json`. Tracks provenance so
-//! `update` / `uninstall` / `list installed` work reliably.
+//! `update` / `remove` / `list` work reliably.
 //!
 //! Identity scheme (v2):
-//! - extensions/themes: `{user}/{repo}#{manifest.name}` — mirrors the
-//!   `spicepm install user/repo#Name` target syntax, unique per manifest
+//! - extensions/themes: `{user}/{repo}#{manifest.name}` - mirrors the
+//!   `spice-pm install user/repo#Name` target syntax, unique per manifest
 //!   (names are the identity within a repo) and stable across upstream
 //!   file renames
-//! - snippet group: `@spicepm/snippets` — reserved `@` namespace, which
+//! - snippet group: `@spicepm/snippets` - reserved `@` namespace, which
 //!   GitHub usernames cannot contain, so it never collides with a real repo
 
-// note: no cross-version migration — if the format changes, re-install.
+// note: no cross-version migration - if the format changes, re-install.
 
 use crate::errors::Result;
 use crate::spicetify::dirs;
@@ -97,7 +97,7 @@ impl Ledger {
         dirs::spicepm_data_dir().join("ledger.json")
     }
 
-    /// Ids of all installed entries — used to mark search results.
+    /// Ids of all installed entries - used to mark search results.
     pub fn installed_ids() -> std::collections::HashSet<String> {
         Self::load()
             .map(|l| l.entries.into_iter().map(|e| e.id).collect())

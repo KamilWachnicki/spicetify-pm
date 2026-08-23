@@ -76,7 +76,7 @@ pub async fn run(http: &HttpClient, target: &str, json: bool) -> Result<()> {
     }
     for item in &items {
         println!(
-            "{} {} — {}",
+            "{} {} - {}",
             match item.kind {
                 crate::market::types::ItemKind::Extension => "[extension]",
                 crate::market::types::ItemKind::Theme => "[theme]",

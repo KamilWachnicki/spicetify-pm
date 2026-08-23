@@ -1,4 +1,4 @@
-//! Privilege detection — the single place allowed to touch OS FFI.
+//! Privilege detection - the single place allowed to touch OS FFI.
 //!
 //! Running elevated breaks file ownership for regular users (files written
 //! by an admin/root process are then unwritable by the normal Spotify user),

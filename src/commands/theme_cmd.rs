@@ -23,7 +23,7 @@ pub fn run_set(name: Option<String>, scheme: Option<&str>) -> Result<()> {
     let theme_root = themes_dir.join(&folder);
     if !theme_root.is_dir() {
         return Err(Error::other(format!(
-            "no theme folder `Themes/{folder}`; run `spicepm install` first or check the name"
+            "no theme folder `Themes/{folder}`; run `spice-pm install` first or check the name"
         )));
     }
 
@@ -52,7 +52,7 @@ pub fn run_scheme(scheme: &str) -> Result<()> {
     let cfg = SpicetifyConfig::load(dirs::config_file())?;
     let Some(theme) = cfg.current_theme().filter(|t| !t.is_empty()) else {
         return Err(Error::other(
-            "no active theme; run `spicepm theme set` first",
+            "no active theme; run `spice-pm theme set` first",
         ));
     };
     let names = read_scheme_names(&dirs::themes_dir().join(&theme));

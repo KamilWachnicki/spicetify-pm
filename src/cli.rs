@@ -3,9 +3,9 @@ use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "spicepm",
+    name = "spice-pm",
     version,
-    about = "Spicetify Marketplace package manager — themes, extensions and snippets",
+    about = "Spicetify Marketplace package manager - themes, extensions and snippets",
     after_help = "Sources and filtering rules mirror the official Spicetify Marketplace."
 )]
 pub struct Cli {
@@ -95,14 +95,16 @@ pub enum Commands {
         out: Option<PathBuf>,
     },
     /// Remove an installed extension/theme/snippet
-    Uninstall {
+    Remove {
         target: String,
         #[arg(short, long)]
         yes: bool,
     },
-    /// List installed items
-    #[command(subcommand)]
-    List(ListCommands),
+    /// List installed items (default: everything)
+    List {
+        #[command(subcommand)]
+        filter: Option<ListCommands>,
+    },
     /// Re-fetch and re-install an item (default: everything)
     Update {
         /// Item id or unique name fragment; omit for all
@@ -117,14 +119,36 @@ pub enum Commands {
     /// Manage cached responses
     #[command(subcommand)]
     Cache(CacheCommands),
+    /// Update spice-pm to the latest GitHub release
+    SelfUpdate {
+        /// Only compare versions; exit 1 when an update is available
+        #[arg(long)]
+        check: bool,
+        /// Assume defaults, skip prompts
+        #[arg(short, long)]
+        yes: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
 pub enum ListCommands {
-    /// Items installed by spicepm
-    Installed {
-        #[arg(short, long)]
-        r#type: Option<ItemTypeArg>,
+    /// Everything installed by spicepm
+    All {
+        #[arg(long)]
+        json: bool,
+    },
+    /// Installed themes
+    Themes {
+        #[arg(long)]
+        json: bool,
+    },
+    /// Installed extensions
+    Extensions {
+        #[arg(long)]
+        json: bool,
+    },
+    /// Enabled CSS snippets
+    Snippets {
         #[arg(long)]
         json: bool,
     },
@@ -133,7 +157,9 @@ pub enum ListCommands {
 #[derive(Subcommand, Debug)]
 pub enum SnippetCommands {
     /// All available CSS snippets
-    List {
+    Search {
+        /// Filter results by substring (key, title, description)
+        query: Option<String>,
         #[arg(long)]
         json: bool,
     },
@@ -143,11 +169,6 @@ pub enum SnippetCommands {
     Add { name: String },
     /// Disable a snippet
     Remove { name: String },
-    /// Currently enabled snippets
-    Installed {
-        #[arg(long)]
-        json: bool,
-    },
 }
 
 #[derive(Subcommand, Debug)]

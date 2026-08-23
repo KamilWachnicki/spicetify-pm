@@ -1,6 +1,6 @@
-//! `spicepm.lock` — a shareable snapshot of everything installed, so a
+//! `spicepm.lock` - a shareable snapshot of everything installed, so a
 //! fresh machine can be brought up with a single zero-arg
-//! `spicepm install`.
+//! `spice-pm install`.
 
 use crate::errors::{Error, Result};
 use crate::ledger::{Kind, Ledger};
@@ -106,7 +106,7 @@ fn resolve_in(flag: Option<&std::path::Path>, primary: &std::path::Path) -> Resu
         return Ok(primary.to_path_buf());
     }
     Err(Error::other(format!(
-        "no lockfile found at {}; run `spicepm lock` first or pass --lockfile <path>",
+        "no lockfile found at {}; run `spice-pm lock` first or pass --lockfile <path>",
         primary.display()
     )))
 }

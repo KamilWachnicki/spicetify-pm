@@ -78,15 +78,15 @@ jobs:
           ARCHIVE: ${{ matrix.archive }}
         run: |
           set -euo pipefail
-          base="spicepm-$TAG-$ARCH-$PLATFORM"
+          base="spice-pm-$TAG-$ARCH-$PLATFORM"
           mkdir "$base"
           exe=""
           [ "$PLATFORM" = "windows" ] && exe=".exe"
-          cp "target/${{ matrix.target }}/release/spicepm$exe" "$base/spicepm$exe"
+          cp "target/${{ matrix.target }}/release/spice-pm$exe" "$base/spice-pm$exe"
           cp README.md "$base/"
           case "$ARCHIVE" in
             tar.gz)
-              tar czf "$base.tar.gz" -C "$base" "spicepm$exe" README.md
+              tar czf "$base.tar.gz" -C "$base" "spice-pm$exe" README.md
               ;;
             zip)
               powershell -NoProfile -Command "Compress-Archive -Path '$base/*' -DestinationPath '$base.zip' -Force"
@@ -104,7 +104,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: bundle-${{ matrix.target }}
-          path: spicepm-${{ github.ref_name }}-${{ matrix.arch }}-${{ matrix.platform }}.${{ matrix.archive }}*
+          path: spice-pm-${{ github.ref_name }}-${{ matrix.arch }}-${{ matrix.platform }}.${{ matrix.archive }}*
 
   release:
     name: publish release

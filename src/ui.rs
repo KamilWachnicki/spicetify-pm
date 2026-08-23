@@ -71,12 +71,12 @@ pub struct PagerPage {
     pub pages: usize,
     pub start: usize,
     pub end: usize,
-    /// Current terminal width, when known — keep rows single-line.
+    /// Current terminal width, when known - keep rows single-line.
     pub width: Option<usize>,
 }
 
 /// Interactive 10-per-page keyboard pager shared by `search` and
-/// `snippets list`. Renders one frame in place (clearing the previous one)
+/// `snippets search`. Renders one frame in place (clearing the previous one)
 /// and returns on quit or digit selection. Caller decides whether to engage
 /// (typically: multiple pages && TTY && !json).
 pub fn run_pager<F>(

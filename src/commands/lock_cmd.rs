@@ -1,4 +1,4 @@
-//! `spicepm lock` — snapshot the installed set into the lockfile.
+//! `spicepm lock` - snapshot the installed set into the lockfile.
 
 use crate::errors::Result;
 use crate::ledger::Ledger;

@@ -172,7 +172,7 @@ pub async fn run(
     );
     let install_hint = format!(
         "install with {} (append {} to pick one of several manifests in the same repo)",
-        ui::style_title("spicepm install <user/repo[#title]>"),
+        ui::style_title("spice-pm install <user/repo[#title]>"),
         "#Title"
     );
 
@@ -196,7 +196,7 @@ pub async fn run(
         // show up immediately
         let installed = crate::ledger::Ledger::installed_ids();
         vec![ui::info_line(format!(
-            "{summary} — page {}/{} (showing {}–{})",
+            "{summary} - page {}/{} (showing {}–{})",
             p.page + 1,
             p.pages,
             p.start + 1,
@@ -208,7 +208,7 @@ pub async fn run(
     };
 
     // pager stays open so several items can be handled per session:
-    // digits install uninstalled extensions/themes and toggle (uninstall)
+    // digits install uninstalled extensions/themes and toggle (remove)
     // extensions that are already in
     let mut changes_count = 0usize;
     let mut current_page = 0usize;
@@ -227,24 +227,24 @@ pub async fn run(
                 let was_installed = crate::ledger::Ledger::installed_ids().contains(&item.id());
 
                 match (item.kind, was_installed) {
-                    // already in: digit toggles to uninstall (confirmed)
+                    // already in: digit toggles to remove (confirmed)
                     (crate::market::types::ItemKind::Extension, true) => {
-                        print_uninstall_summary(item);
+                        print_remove_summary(item);
                         let confirmed = dialoguer::Confirm::with_theme(
                             &dialoguer::theme::ColorfulTheme::default(),
                         )
-                        .with_prompt("really uninstall this extension?")
+                        .with_prompt("really remove this extension?")
                         .default(false)
                         .interact()
                         .unwrap_or(false);
                         if !confirmed {
-                            ui::info("skipped — still installed");
+                            ui::info("skipped - still installed");
                             continue;
                         }
                         let mut led = crate::ledger::Ledger::load()?;
-                        crate::commands::uninstall::remove_entry(&mut led, &item.id())?;
+                        crate::commands::remove::remove_entry(&mut led, &item.id())?;
                         ui::success(format!(
-                            "uninstalled extension {}",
+                            "removed extension {}",
                             ui::style_title(&item.title)
                         ));
                     }
@@ -253,22 +253,22 @@ pub async fn run(
                     // staying in the pager. Config is only cleared when
                     // this exact theme is the one currently applied.
                     (crate::market::types::ItemKind::Theme, true) => {
-                        print_uninstall_summary(item);
+                        print_remove_summary(item);
                         let confirmed = dialoguer::Confirm::with_theme(
                             &dialoguer::theme::ColorfulTheme::default(),
                         )
-                        .with_prompt("really uninstall this theme?")
+                        .with_prompt("really remove this theme?")
                         .default(false)
                         .interact()
                         .unwrap_or(false);
                         if !confirmed {
-                            ui::info("skipped — still installed");
+                            ui::info("skipped - still installed");
                             continue;
                         }
                         let mut led = crate::ledger::Ledger::load()?;
-                        crate::commands::uninstall::remove_entry(&mut led, &item.id())?;
+                        crate::commands::remove::remove_entry(&mut led, &item.id())?;
                         ui::success(format!(
-                            "uninstalled theme {}",
+                            "removed theme {}",
                             ui::style_title(&item.title)
                         ));
                     }
@@ -395,8 +395,8 @@ fn print_install_summary(item: &crate::market::types::CardItem) {
 }
 
 /// Print everything a selection will remove from disk and config when the
-/// digit toggles an installed extension to uninstalled.
-fn print_uninstall_summary(item: &crate::market::types::CardItem) {
+/// digit toggles an installed extension to removed.
+fn print_remove_summary(item: &crate::market::types::CardItem) {
     ui::info(format!(
         "about to remove {} [{}]",
         ui::style_title(&item.title),
@@ -607,7 +607,7 @@ mod tests {
         );
         assert!(
             !lines[2].contains("installed"),
-            "uninstalled row must have empty status"
+            "not-installed row must have empty status"
         );
     }
 

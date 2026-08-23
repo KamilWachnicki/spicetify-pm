@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# spicepm installer for Linux and macOS.
+# spice-pm installer for Linux and macOS.
 #
 # Usage:
 #   ./install.sh [--version vX.Y.Z] [--dir PATH]
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 REPO="KamilWachnicki/spicetify-pm"
-BIN="spicepm"
+BIN="spice-pm"
 INSTALL_DIR="${SPICEPM_INSTALL_DIR:-$HOME/.local/bin}"
 TARGET=""
 

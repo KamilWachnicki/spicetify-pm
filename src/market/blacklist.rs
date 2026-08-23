@@ -71,7 +71,7 @@ fn match_star(parts: &[&str], text: &str) -> bool {
     let Some(part) = parts.first() else {
         // nothing after this star; the star still had to consume something,
         // but that was validated by the caller before recursing here only
-        // when more parts existed — reaching here means empty remainder.
+        // when more parts existed - reaching here means empty remainder.
         return false;
     };
     for (start, _) in text.match_indices(part) {

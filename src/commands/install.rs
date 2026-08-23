@@ -179,7 +179,7 @@ async fn install_target(http: &HttpClient, target: &str, yes: bool) -> Result<()
     Ok(())
 }
 
-/// Install a fully resolved `CardItem` — shared by the `install` command and
+/// Install a fully resolved `CardItem` - shared by the `install` command and
 /// search's digit-key quick-install.
 pub(crate) async fn install_item(http: &HttpClient, item: &CardItem, yes: bool) -> Result<()> {
     match item.kind {
@@ -210,7 +210,7 @@ fn pick_item(items: &[CardItem], yes: bool) -> Result<&CardItem> {
             let label_refs: Vec<&str> = labels.iter().map(String::as_str).collect();
             let selection =
                 dialoguer::Select::with_theme(&dialoguer::theme::ColorfulTheme::default())
-                    .with_prompt("Multiple manifests found — which one?")
+                    .with_prompt("Multiple manifests found - which one?")
                     .items(&label_refs)
                     .default(0)
                     .interact()
@@ -274,7 +274,7 @@ async fn install_extension(http: &HttpClient, item: &CardItem) -> Result<()> {
         && existing.id != item.id()
     {
         return Err(Error::other(format!(
-            "`{basename}` is already owned by `{}`; uninstall it first",
+            "`{basename}` is already owned by `{}`; remove it first",
             existing.id
         )));
     }

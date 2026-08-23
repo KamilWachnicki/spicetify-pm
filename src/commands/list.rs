@@ -1,4 +1,4 @@
-use crate::cli::ItemTypeArg;
+use crate::cli::ListCommands;
 use crate::errors::Result;
 use crate::ledger::{Kind, Ledger};
 use serde::Serialize;
@@ -6,18 +6,25 @@ use serde::Serialize;
 #[derive(Serialize)]
 struct InstalledRow {
     id: String,
-    kind: Kind,
+    #[serde(rename = "type")]
+    r#type: Kind,
     user: String,
     repo: String,
     installed_at: u64,
 }
 
-pub fn run_installed(r#type: Option<ItemTypeArg>, json: bool) -> Result<()> {
+pub fn run(cmd: Option<&ListCommands>) -> Result<()> {
+    match cmd {
+        None => installed(None, false),
+        Some(ListCommands::All { json }) => installed(None, *json),
+        Some(ListCommands::Themes { json }) => installed(Some(Kind::Theme), *json),
+        Some(ListCommands::Extensions { json }) => installed(Some(Kind::Extension), *json),
+        Some(ListCommands::Snippets { json }) => snippets(*json),
+    }
+}
+
+fn installed(kind_filter: Option<Kind>, json: bool) -> Result<()> {
     let ledger = Ledger::load()?;
-    let kind_filter = r#type.map(|t| match t {
-        ItemTypeArg::Extension => Kind::Extension,
-        ItemTypeArg::Theme => Kind::Theme,
-    });
 
     let entries: Vec<_> = ledger
         .entries
@@ -30,7 +37,7 @@ pub fn run_installed(r#type: Option<ItemTypeArg>, json: bool) -> Result<()> {
             .iter()
             .map(|e| InstalledRow {
                 id: e.id.clone(),
-                kind: e.kind,
+                r#type: e.kind,
                 user: e.user.clone(),
                 repo: e.repo.clone(),
                 installed_at: e.installed_at,
@@ -41,10 +48,10 @@ pub fn run_installed(r#type: Option<ItemTypeArg>, json: bool) -> Result<()> {
     }
 
     if entries.is_empty() {
-        crate::ui::info("nothing installed via spicepm yet");
+        crate::ui::info(empty_message(kind_filter));
         return Ok(());
     }
-    let mut table = crate::ui::Table::new(&["id", "kind"]);
+    let mut table = crate::ui::Table::new(&["Id", "Type"]);
     for entry in &entries {
         table.row(vec![
             entry.id.clone(),
@@ -53,4 +60,30 @@ pub fn run_installed(r#type: Option<ItemTypeArg>, json: bool) -> Result<()> {
     }
     table.print();
     Ok(())
+}
+
+fn snippets(json: bool) -> Result<()> {
+    let keys = crate::commands::snippets::enabled_keys(&Ledger::load()?);
+    if json {
+        println!("{}", serde_json::to_string_pretty(&keys)?);
+        return Ok(());
+    }
+    if keys.is_empty() {
+        crate::ui::info("no snippets enabled");
+        return Ok(());
+    }
+    let mut table = crate::ui::Table::new(&["Key"]);
+    for key in &keys {
+        table.row(vec![key.clone()]);
+    }
+    table.print();
+    Ok(())
+}
+
+fn empty_message(kind_filter: Option<Kind>) -> &'static str {
+    match kind_filter {
+        Some(Kind::Theme) => "no themes installed via spicepm yet",
+        Some(Kind::Extension) => "no extensions installed via spicepm yet",
+        _ => "nothing installed via spicepm yet",
+    }
 }

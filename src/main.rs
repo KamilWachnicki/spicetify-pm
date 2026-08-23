@@ -47,7 +47,7 @@ fn init_tracing(verbosity: u8) {
 }
 
 async fn run(args: cli::Cli) -> errors::Result<()> {
-    use cli::{CacheCommands, Commands, ListCommands, SnippetCommands, ThemeCommands};
+    use cli::{CacheCommands, Commands, SnippetCommands, ThemeCommands};
 
     let http = http::HttpClient::new(args.no_cache)?;
     if args.apply {
@@ -75,22 +75,19 @@ async fn run(args: cli::Cli) -> errors::Result<()> {
 
         Commands::Lock { out } => commands::lock_cmd::run(out),
 
-        Commands::Uninstall { target, yes } => commands::uninstall::run(&http, &target, yes).await,
+        Commands::Remove { target, yes } => commands::remove::run(&http, &target, yes).await,
 
         Commands::Update { target } => commands::update::run(&http, target).await,
 
-        Commands::List(cmd) => match cmd {
-            ListCommands::Installed { r#type, json } => commands::list::run_installed(r#type, json),
-        },
+        Commands::List { filter } => commands::list::run(filter.as_ref()),
 
         Commands::Snippets(cmd) => match cmd {
-            SnippetCommands::List { json } => commands::snippets::run_list(&http, json).await,
+            SnippetCommands::Search { query, json } => {
+                commands::snippets::run_search(&http, query.as_deref(), json).await
+            }
             SnippetCommands::Show { name } => commands::snippets::run_show(&http, &name).await,
             SnippetCommands::Add { name } => commands::snippets::run_add(&http, &name).await,
             SnippetCommands::Remove { name } => commands::snippets::run_remove(&http, &name).await,
-            SnippetCommands::Installed { json } => {
-                commands::snippets::run_installed(&http, json).await
-            }
         },
 
         Commands::Theme(cmd) => match cmd {
@@ -100,6 +97,10 @@ async fn run(args: cli::Cli) -> errors::Result<()> {
             ThemeCommands::Scheme { scheme } => commands::theme_cmd::run_scheme(&scheme),
             ThemeCommands::Current { json } => commands::theme_cmd::run_current(json),
         },
+
+        Commands::SelfUpdate { check, yes } => {
+            commands::self_update::run(&http, check, yes).await
+        }
 
         Commands::Cache(cmd) => match cmd {
             CacheCommands::Path => commands::cache_cmd::run_path(),

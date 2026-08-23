@@ -68,7 +68,7 @@ async fn update_item(http: &HttpClient, entry: &LedgerEntry) -> Result<bool> {
         }
     } else {
         ui::warn(format!(
-            "`{}` no longer exists upstream (removed or renamed); uninstall and reinstall to migrate",
+            "`{}` no longer exists upstream (removed or renamed); remove and reinstall to migrate",
             entry.id
         ));
         Ok(false)

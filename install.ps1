@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    spicepm installer for Windows.
+    spice-pm installer for Windows.
 
 .DESCRIPTION
     Downloads the latest (or given) release from GitHub, verifies its
@@ -10,16 +10,16 @@
 .EXAMPLE
     ./install.ps1
     ./install.ps1 -Version v0.1.0
-    ./install.ps1 -InstallDir D:\tools\spicepm
+    ./install.ps1 -InstallDir D:\tools\spice-pm
 #>
 param(
     [string]$Version = "",
-    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\spicepm"
+    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\spice-pm"
 )
 
 $ErrorActionPreference = "Stop"
 $Repo = "KamilWachnicki/spicetify-pm"
-$Bin = "spicepm"
+$Bin = "spice-pm"
 
 function Write-Info($msg) { Write-Host $msg -ForegroundColor Green }
 function Write-Warn2($msg) { Write-Host $msg -ForegroundColor Yellow }

@@ -26,7 +26,7 @@ pub async fn get_repo_manifests(
 }
 
 /// Fetch and validate manifests for many repos concurrently and expand each
-/// repo into its individual `CardItem`s — mirroring the marketplace grid,
+/// repo into its individual `CardItem`s - mirroring the marketplace grid,
 /// where a multi-manifest repo (e.g. `rxri/spicetify-extensions`) surfaces as
 /// one card per manifest entry. Repos with no valid manifests are dropped.
 /// Returns per-repo item lists plus the count of malformed manifest warnings.

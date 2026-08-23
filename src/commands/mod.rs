@@ -5,9 +5,10 @@ pub mod install;
 pub mod list;
 pub mod lock_cmd;
 pub mod search;
+pub mod self_update;
 pub mod snippets;
 pub mod theme_cmd;
-pub mod uninstall;
+pub mod remove;
 pub mod update;
 
 use crate::cli::ItemTypeArg;
@@ -67,7 +68,7 @@ pub(crate) fn reconcile_extensions_dir(led: &crate::ledger::Ledger) -> Result<Ve
 }
 
 /// The colour scheme currently applied to this theme entry, when it is the
-/// active theme — captured into lockfiles so reinstalls restore it.
+/// active theme - captured into lockfiles so reinstalls restore it.
 pub fn active_theme_scheme(entry: &LedgerEntry) -> Option<String> {
     let folder = entry.config_refs.first()?;
     let cfg =

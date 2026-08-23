@@ -1,4 +1,4 @@
-# spicepm
+# spice-pm
 
 A Spicetify **Marketplace package manager** for your terminal - discover,
 install, update, and remove themes, extensions, and CSS snippets using the
@@ -17,12 +17,12 @@ Single static binary, no runtime dependencies beyond `spicetify` itself.
   filtering, manifest validation identical to the web app (invalid entries are
   skipped exactly where the app skips them)
 - **Interactive pager** - 10 results per page with keyboard navigation, live
-  `STATUS`/`ENABLED` columns, and digit keys that install/uninstall/toggle
+  `STATUS`/`ENABLED` columns, and digit keys that install/remove/toggle
   rows in place
 - **Safe by default** - every action prints an exact summary of what will be
   written/deleted *before* it happens; destructive moves require confirmation
 - **Lockfile** - snapshot your installed set and restore it anywhere with one
-  command (`spicepm lock` → zero-arg `spicepm install`)
+  command (`spice-pm lock` → zero-arg `spice-pm install`)
 - **Clean reinstalls** - theme updates wipe the theme folder and reinstall
   from scratch (with local-drift detection), so you always match upstream
 
@@ -46,7 +46,7 @@ irm https://raw.githubusercontent.com/KamilWachnicki/spicetify-pm/main/install.p
 
 Both scripts accept `--version vX.Y.Z` / `-Version vX.Y.Z` to pin a release,
 and `--dir` / `-InstallDir` to change the target directory. Release assets are
-named `spicepm-<tag>-<arch>-<os>.tar.gz|.zip`.
+named `spice-pm-<tag>-<arch>-<os>.tar.gz|.zip`.
 
 Build from source instead:
 
@@ -76,16 +76,17 @@ export GITHUB_TOKEN=ghp_xxxx    # bash/zsh
 ## Usage
 
 ```
-spicepm search [query] [options]
-spicepm info <user/repo|url>
-spicepm install [<user/repo[#name]|url>] [--lockfile <path>]
-spicepm uninstall <id|name|file> [--yes]
-spicepm update [target]
-spicepm list installed
-spicepm lock [--out <path>]
-spicepm snippets list|show|add|remove|installed
-spicepm theme set [name] [scheme] | theme scheme <scheme> | theme current
-spicepm cache path|clear
+spice-pm search [query] [options]
+spice-pm info <user/repo|url>
+spice-pm install [<user/repo[#name]|url>] [--lockfile <path>]
+spice-pm remove <id|name|file> [--yes]
+spice-pm update [target]
+spice-pm list [all|themes|extensions|snippets] [--json]
+spice-pm lock [--out <path>]
+spice-pm snippets search [query]|show|add|remove
+spice-pm theme set [name] [scheme] | theme scheme <scheme> | theme current
+spice-pm cache path|clear
+spice-pm self-update [--check] [--yes]
 ```
 
 Global flags: `--no-cache`, `--apply`, `--bypass-admin`, `-v/-vv` logging,
@@ -93,23 +94,23 @@ Global flags: `--no-cache`, `--apply`, `--bypass-admin`, `-v/-vv` logging,
 
 ### Running as administrator/root
 
-spicepm **refuses to run elevated** (effective UID 0 on Linux/macOS, an
-elevated token on Windows) — elevated sessions leave admin-owned files that
+spice-pm **refuses to run elevated** (effective UID 0 on Linux/macOS, an
+elevated token on Windows) - elevated sessions leave admin-owned files that
 break spicetify for the regular user later, the same reason the spicetify CLI
 itself guards this. Override when you genuinely need it:
 
 ```sh
-sudo spicepm search --bypass-admin
+sudo spice-pm search --bypass-admin
 ```
 
 ### search
 
 ```sh
-spicepm search --type theme --sort stars          # whole themes catalogue
-spicepm search bloom --type theme                 # substring filter
-spicepm search --json adblock                     # machine-readable output
-spicepm search --page 1 --sort a-z                # single API page
-spicepm search --archived                         # include archived repos
+spice-pm search --type theme --sort stars          # whole themes catalogue
+spice-pm search bloom --type theme                 # substring filter
+spice-pm search --json adblock                     # machine-readable output
+spice-pm search --page 1 --sort a-z                # single API page
+spice-pm search --archived                         # include archived repos
 ```
 
 Every result row is an **individual manifest entry** - a multi-extension repo
@@ -131,12 +132,12 @@ What a digit press does:
 - **uninstalled extension** → install summary → confirm (`proceed with
   install?`) → installs; the pager stays open on the same page so you can keep
   picking
-- **installed extension** → removal summary → confirm uninstall; toggling both
+- **installed extension** → removal summary → confirm removal; toggling both
   ways is fully reversible from the keyboard
 - **uninstalled theme** → full file-by-file install summary → confirm →
   installs, colour scheme chosen interactively when several exist; the pager
   closes after one theme operation
-- **installed theme** → removal summary → confirm uninstall; deactivates and
+- **installed theme** → removal summary → confirm removal; deactivates and
   clears `current_theme`/`color_scheme` only if that exact theme is active
 
 Rows already installed show a green `✔ installed` status; enabled snippets
@@ -148,23 +149,23 @@ Piped output and `--json` always print the complete result set without prompts;
 ### info
 
 ```sh
-spicepm info Comfy-Themes/Spicetify
-spicepm info https://github.com/rxri/spicetify-extensions --json
+spice-pm info Comfy-Themes/Spicetify
+spice-pm info https://github.com/rxri/spicetify-extensions --json
 ```
 
 Shows repo metadata plus every valid manifest (id, authors, branch, tags,
 download URLs) after the same blacklist check used by install.
 
-### install / uninstall / update
+### install / remove / update
 
 ```sh
-spicepm install rxri/spicetify-extensions#adblockify
-spicepm install Comfy-Themes/Spicetify#Comfy      # scheme prompt if needed
-spicepm install https://github.com/someone/some-theme
-spicepm uninstall adblock                          # fragment match + y/N
-spicepm uninstall adblock --yes                    # skip confirmation
-spicepm update StarryNight                         # clean-reinstall one item
-spicepm update                                     # everything
+spice-pm install rxri/spicetify-extensions#adblockify
+spice-pm install Comfy-Themes/Spicetify#Comfy      # scheme prompt if needed
+spice-pm install https://github.com/someone/some-theme
+spice-pm remove adblock                            # fragment match + y/N
+spice-pm remove adblock --yes                      # skip confirmation
+spice-pm update StarryNight                         # clean-reinstall one item
+spice-pm update                                     # everything
 ```
 
 - **Extensions** land in `<SPICETIFY_CONFIG>/Extensions/<file>` and are
@@ -172,50 +173,51 @@ spicepm update                                     # everything
 - **Themes** land in `Themes/<name>/` - `user.css`, `color.ini`, every
   `include[]` file, and the first JS include is bridged to `theme.js` so
   spicetify auto-injects it. `current_theme` + your chosen `color_scheme` are
-  written to `[Setting]`. If the theme ships scripts, spicepm also sets
+  written to `[Setting]`. If the theme ships scripts, spice-pm also sets
   `inject_theme_js=1` for you.
 - **Theme updates are clean reinstalls**: the folder is wiped and rebuilt from
   upstream, local drift (edits/orphans) is detected and reported, and your
   previously selected colour scheme is restored when it still exists.
-- After mutating commands spicepm prints `run "spicetify apply"`; pass global
+- After mutating commands spice-pm prints `run "spicetify apply"`; pass global
   `--apply` to run it for you.
 
 ### Lockfile
 
 ```sh
-spicepm lock                       # write <SPICETIFY_CONFIG>/spicepm/spicepm.lock
-spicepm lock --out ~/dotfiles/spicepm.lock
-cd ~/dotfiles && spicepm install   # restore everything, schemes included
+spice-pm lock                       # write <SPICETIFY_CONFIG>/spicepm/spicepm.lock
+spice-pm lock --out ~/dotfiles/spicepm.lock
+cd ~/dotfiles && spice-pm install   # restore everything, schemes included
 ```
 
 The lockfile records each pinned item (kind, id, user/repo, branch, chosen
 colour scheme) plus enabled snippet keys. It is **auto-refreshed on every
-install/uninstall/update**, so it never drifts from reality. Zero-arg install
+install/remove/update**, so it never drifts from reality. Zero-arg install
 resolves `--lockfile` → `./spicepm.lock` → error with guidance.
 
 ### snippets
 
 ```sh
-spicepm snippets list              # interactive pager, digits toggle
-spicepm snippets add "Hamsters Dancing"
-spicepm snippets remove "Hamsters Dancing"
-spicepm snippets show "Sonic Dancing"
-spicepm snippets installed
+spice-pm snippets search            # interactive pager, digits toggle
+spice-pm snippets search dancing    # filter by substring
+spice-pm snippets add "Hamsters Dancing"
+spice-pm snippets remove "Hamsters Dancing"
+spice-pm snippets show "Sonic Dancing"
+spice-pm list snippets              # enabled snippet keys
 ```
 
 Enabled snippets are applied through a generated companion extension
 (`Extensions/spicepm-snippets.js`) that injects them at runtime - the same
 mechanism the marketplace app uses, surviving theme switches with zero theme
 file pollution. The companion is rebuilt automatically whenever extensions are
-installed/uninstalled, and orphaned files in `Extensions/` are cleaned up.
+installed/removed, and orphaned files in `Extensions/` are cleaned up.
 
 ### theme
 
 ```sh
-spicepm theme set                  # pick from installed themes interactively
-spicepm theme set Cattpuccin mocha
-spicepm theme scheme latte
-spicepm theme current --json
+spice-pm theme set                  # pick from installed themes interactively
+spice-pm theme set Cattpuccin mocha
+spice-pm theme scheme latte
+spice-pm theme current --json
 ```
 
 ### cache
@@ -224,8 +226,20 @@ Responses are cached on disk with per-type TTLs (search 10 min, manifests 24 h,
 blacklist/snippets 1 h).
 
 ```sh
-spicepm cache path                 # print the cache directory
-spicepm cache clear
+spice-pm cache path                 # print the cache directory
+spice-pm cache clear
+```
+
+### self-update
+
+Compares the running version against the latest GitHub release and, when
+outdated, re-runs the install script pinned to that tag over the current
+binary in place (the previous binary is restored if anything fails).
+
+```sh
+spice-pm self-update                # confirm + update
+spice-pm self-update --yes          # skip confirmation
+spice-pm self-update --check        # compare only; exit 1 when outdated
 ```
 
 ---
@@ -238,7 +252,7 @@ spicepm cache clear
   `@spicepm/snippets`.
 - **Ledger**: `<SPICETIFY_CONFIG>/spicepm/ledger.json` tracks provenance
   (source, branch, resolved URLs, sha256 per file, config references). This is
-  what powers `update`, exact uninstalls, and `STATUS` marks.
+  what powers `update`, exact removals, and `STATUS` marks.
 - **Atomicity**: config and ledger writes go through temp-file renames; failed
   actions leave the previous state intact.
 - **Rate limits**: exhausted quota produces a clear message with the reset
@@ -249,9 +263,9 @@ spicepm cache clear
 
 ## Marketplace compliance
 
-`spicepm` ports the marketplace's remote logic field by field:
+`spice-pm` ports the marketplace's remote logic field by field:
 
-| [Publishing rule](https://github.com/spicetify/marketplace/wiki/Publishing-to-Marketplace) | spicepm |
+| [Publishing rule](https://github.com/spicetify/marketplace/wiki/Publishing-to-Marketplace) | spice-pm |
 |---|---|
 | Discovery via `spicetify-extensions` / `spicetify-themes` topics | ✅ topic search, `per_page=100`, paginated |
 | `manifest.json` in repo root | ✅ fetched from raw + default branch |

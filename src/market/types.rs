@@ -122,10 +122,10 @@ pub struct CardItem {
 }
 
 impl CardItem {
-    /// spicepm identity key: `{user}/{repo}#{manifest.name}`.
+    /// spice-pm identity key: `{user}/{repo}#{manifest.name}`.
     /// Unique per manifest (names are the identity within a repo), stable
     /// across upstream file renames, and identical to the install target
-    /// syntax: `spicepm install <user/repo#Name>`.
+    /// syntax: `spice-pm install <user/repo#Name>`.
     pub fn id(&self) -> String {
         format!("{}/{}#{}", self.user, self.repo, self.manifest.name)
     }
@@ -151,9 +151,5 @@ impl Snippet {
     /// Marketplace-style key: spaces replaced by dashes.
     pub fn key(&self) -> String {
         self.title.replace(' ', "-")
-    }
-
-    pub fn full_key(&self) -> String {
-        format!("snippet:{}", self.key())
     }
 }

@@ -36,7 +36,7 @@ pub async fn run(http: &HttpClient, target: &str, yes: bool) -> Result<()> {
             }
             let refs: Vec<&str> = labels.iter().map(String::as_str).collect();
             let idx = dialoguer::Select::with_theme(&dialoguer::theme::ColorfulTheme::default())
-                .with_prompt("Multiple matches — which one?")
+                .with_prompt("Multiple matches - which one?")
                 .items(&refs)
                 .default(0)
                 .interact()
@@ -50,7 +50,7 @@ pub async fn run(http: &HttpClient, target: &str, yes: bool) -> Result<()> {
             let confirmed =
                 dialoguer::Confirm::with_theme(&dialoguer::theme::ColorfulTheme::default())
                     .with_prompt(format!(
-                        "really uninstall {} {}?",
+                        "really remove {} {}?",
                         format!("{kind:?}").to_lowercase(),
                         ui::style_title(&id)
                     ))
@@ -58,7 +58,7 @@ pub async fn run(http: &HttpClient, target: &str, yes: bool) -> Result<()> {
                     .interact()
                     .unwrap_or(false);
             if !confirmed {
-                ui::info("aborted — nothing was removed");
+                ui::info("aborted - nothing was removed");
                 return Ok(());
             }
         }
@@ -69,7 +69,7 @@ pub async fn run(http: &HttpClient, target: &str, yes: bool) -> Result<()> {
             crate::commands::snippets::rebuild_companion(http).await?;
         }
         ui::success(format!(
-            "uninstalled {} ({})",
+            "removed {} ({})",
             ui::style_title(&id),
             format!("{kind:?}").to_lowercase()
         ));
