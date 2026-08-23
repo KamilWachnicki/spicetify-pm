@@ -372,4 +372,4 @@ Roadmap: custom apps support (`topic:spicetify-apps`), shell completions.
 
 ## License
 
-LGPL v2.1
+MIT
