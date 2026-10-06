@@ -8,7 +8,7 @@ install, update, and remove themes, extensions, and CSS snippets using the
 Built in Rust. Linux-first; also runs on macOS and Windows.
 Single static binary, no runtime dependencies beyond `spicetify` itself.
 
----
+## This is only compatible with spicetify v2
 
 ## Highlights
 
